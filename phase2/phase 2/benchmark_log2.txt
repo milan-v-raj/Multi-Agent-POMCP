@@ -1,0 +1,11 @@
+
+==================================================
+=== FINAL IEEE BENCHMARK RESULTS ===
+==================================================
+Total Episodes Run   : 100
+Capture Success Rate : 30.0%
+Avg Time-to-Capture  : 1089.6 frames
+Std Dev (Frames)     : ±270.7
+Avg Planning Latency : 74.28 ms
+Std Dev (Latency)    : ±16.27 ms
+==================================================
