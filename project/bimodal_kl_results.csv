@@ -1,0 +1,2 @@
+trial,seed,policy,kl_gaussian,kl_gmm2,belief_mean_y,action_steers_into_wall
+10,4009,Vanilla POMCP,0.1014,0.0541,339.17,False

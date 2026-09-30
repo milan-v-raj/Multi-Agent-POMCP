@@ -1,0 +1,60 @@
+# =============================================================================
+# Git Ignore for Deep-POMCP (B.Tech Capstone Project)
+# =============================================================================
+
+# Unrelated Coursework (Clean Reference Free Denoising)
+AI for text , image and video processing/
+
+# Python & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+
+# Large Datasets & Dumps (>25MB)
+*.npz
+*.pt
+*.bin
+*.tar.gz
+*.zip
+*.mp4
+
+# Exclude Root-Level Downloaded Papers & Presentations
+/*.pdf
+/*.pptx
+chumma.py
+.dist/
+
+# Large Simulation Run Logs (Keep benchmark summary CSVs)
+mission_logs*.csv
+logs_astar.csv
+
+# LaTeX Compilation Artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.fls
+*.fdb_latexmk
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+.gemini/
+
+# Keep Trained Neural Weights
+!project/deep_pomcp_weights.pth
+!project/deep_pomcp_weights_v2.pth
+!project/deep_pomcp_weights_v1_backup.pth

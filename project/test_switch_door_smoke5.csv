@@ -1,0 +1,21 @@
+policy,episode,seed,captured,steps,switch_triggered,first_switch_step,gate_breached,gate_breach_step
+Reactive A*,1,6000,False,1200,False,-1,False,-1
+Reactive A*,2,6010,False,1200,False,-1,False,-1
+Reactive A*,3,6020,False,1200,False,-1,False,-1
+Reactive A*,4,6030,False,1200,False,-1,False,-1
+Reactive A*,5,6040,False,1200,False,-1,False,-1
+Vanilla POMCP,1,6000,False,1200,False,-1,False,-1
+Vanilla POMCP,2,6010,False,1200,False,-1,False,-1
+Vanilla POMCP,3,6020,False,1200,False,-1,False,-1
+Vanilla POMCP,4,6030,False,1200,False,-1,False,-1
+Vanilla POMCP,5,6040,False,1200,False,-1,False,-1
+Heuristic POMCP,1,6000,False,1200,False,-1,False,-1
+Heuristic POMCP,2,6010,False,1200,False,-1,False,-1
+Heuristic POMCP,3,6020,False,1200,False,-1,False,-1
+Heuristic POMCP,4,6030,False,1200,False,-1,False,-1
+Heuristic POMCP,5,6040,False,1200,False,-1,False,-1
+Deep-POMCP (Ours),1,6000,True,936,True,74,True,799
+Deep-POMCP (Ours),2,6010,False,1200,True,62,False,-1
+Deep-POMCP (Ours),3,6020,True,756,True,51,True,181
+Deep-POMCP (Ours),4,6030,True,271,True,82,True,197
+Deep-POMCP (Ours),5,6040,False,1200,True,79,True,1200

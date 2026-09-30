@@ -1,0 +1,9 @@
+policy,episode,seed,captured,steps,switch_triggered,first_switch_step,gate_breached,gate_breach_step
+Reactive A*,1,6000,False,1200,False,-1,False,-1
+Reactive A*,2,6010,False,1200,False,-1,False,-1
+Vanilla POMCP,1,6000,False,1200,False,-1,False,-1
+Vanilla POMCP,2,6010,False,1200,False,-1,False,-1
+Heuristic POMCP,1,6000,False,1200,False,-1,False,-1
+Heuristic POMCP,2,6010,False,1200,False,-1,False,-1
+Deep-POMCP (Ours),1,6000,False,1200,False,-1,False,-1
+Deep-POMCP (Ours),2,6010,False,1200,False,-1,False,-1

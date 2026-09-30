@@ -1,0 +1,25 @@
+policy,preset,episode,seed,captured,steps,mcts_calls,mean_latency_ms
+Periodic Deep-POMCP (Fixed 15-frame),open,1,7000,True,1416,188,9.979
+Periodic Deep-POMCP (Fixed 15-frame),open,2,7010,False,1500,200,8.999
+Periodic Deep-POMCP (Fixed 15-frame),moderate,1,7000,True,637,84,7.739
+Periodic Deep-POMCP (Fixed 15-frame),moderate,2,7010,True,1208,161,8.521
+Periodic Deep-POMCP (Fixed 15-frame),dense_maze,1,7000,True,1443,192,7.532
+Periodic Deep-POMCP (Fixed 15-frame),dense_maze,2,7010,True,234,31,6.327
+Periodic Deep-POMCP (Fixed 15-frame),u_trap,1,7000,False,1500,200,8.227
+Periodic Deep-POMCP (Fixed 15-frame),u_trap,2,7010,True,988,131,8.442
+Periodic Deep-POMCP (Fixed 15-frame),figure_8,1,7000,False,1500,200,7.181
+Periodic Deep-POMCP (Fixed 15-frame),figure_8,2,7010,False,1500,200,6.459
+Periodic Deep-POMCP (Fixed 15-frame),bimodal_fork,1,7000,True,341,45,9.52
+Periodic Deep-POMCP (Fixed 15-frame),bimodal_fork,2,7010,True,1301,173,7.732
+ET-Deep-POMCP (Event-Triggered),open,1,7000,False,1500,102,4.611
+ET-Deep-POMCP (Event-Triggered),open,2,7010,True,1034,68,4.451
+ET-Deep-POMCP (Event-Triggered),moderate,1,7000,True,494,39,4.552
+ET-Deep-POMCP (Event-Triggered),moderate,2,7010,True,296,22,4.354
+ET-Deep-POMCP (Event-Triggered),dense_maze,1,7000,True,624,51,4.995
+ET-Deep-POMCP (Event-Triggered),dense_maze,2,7010,True,389,38,6.73
+ET-Deep-POMCP (Event-Triggered),u_trap,1,7000,False,1500,102,4.561
+ET-Deep-POMCP (Event-Triggered),u_trap,2,7010,False,1500,103,3.875
+ET-Deep-POMCP (Event-Triggered),figure_8,1,7000,False,1500,110,4.864
+ET-Deep-POMCP (Event-Triggered),figure_8,2,7010,True,546,38,4.867
+ET-Deep-POMCP (Event-Triggered),bimodal_fork,1,7000,True,337,25,5.3
+ET-Deep-POMCP (Event-Triggered),bimodal_fork,2,7010,True,1482,104,4.549
