@@ -22,7 +22,8 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 3. **Internal Adversarial Simulation & Encirclement Advantage ($R_{\text{EA}}$)**: Embeds a 12-ray dynamic evader model into lookahead expansions paired with a $180^\circ$ pincer reward, boosting capture rate against active evasion to **70.0%** (where Reactive A* drops to 10.0%).
 4. **Macro-Action Dec-POMDP (Mac-POMCP) for Cooperative Sacrifice**: Resolves the horizon truncation trap in delayed-gratification switch-door puzzles with zero hardcoded coordinates, achieving **80.0%–100.0% win rate** where primitive flat POMCP and Greedy A* score **0.0%**.
 5. **Epistemic Causal Mechanism Discovery (`causal_switch_pomdp`)**: Places $K=3$ unlabelled candidate pressure plates in the arena where only one latent switch $\kappa^* \in \{0, 1, 2\}$ physically operates the door. Agents maintain a dual belief (continuous evader particle cloud $\mathcal{B}_e$ + categorical causal belief $\mathbf{b}_\kappa \in \Delta^K$), prune non-functional switches via Bayesian negative evidence, and coordinate sacrifice (**100.0% Win Rate** for Causal Mac-POMCP; **90.0% Zero-Shot Win Rate** for frozen Deep Causal Mac-POMCP).
-6. **Information-Theoretic Event-Triggered MCTS (ET-MCTS)**: Triggers replanning only on significant entropy flux, line-of-sight edges, or path invalidation, pruning search invocations by **39.3%** and reducing decision latency to sub-millisecond regimes (**4.67 ms**).
+6. **Latent Belief-Graph MCTS via PointNet Transposition Merging (`DAG-Deep-POMCP`)**: Replaces the exponential action-observation history tree with a Directed Acyclic Belief Graph (DAG) using the 128-D PointNet embedding $\mathbf{z} = \phi(\mathcal{B}_t)$ as an $\mathcal{O}(1)$ locality-sensitive belief hash ($4.1\times$ faster than Sinkhorn Optimal Transport). Merges up to **40.7%** of transposed search states, nearly doubling effective search depth ($D=6.0$ at $N_{\text{sims}}=30$ vs. $D=3.0$ for Tree MCTS) and boosting adversarial capture rate by **+16.7%**.
+7. **Information-Theoretic Event-Triggered MCTS (ET-MCTS)**: Triggers replanning only on significant entropy flux, line-of-sight edges, or path invalidation, pruning search invocations by **39.3%** and reducing decision latency to sub-millisecond regimes (**4.67 ms**).
 
 ---
 
@@ -49,6 +50,15 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | **Heuristic Trial-and-Error** | 0.0% | 100.0% | 2.20 | Timeout (1200) |
 | **Causal Mac-POMCP (Ours)** | **100.0%** | **100.0%** | **2.00** | **649.4** |
 | **Deep Causal Mac-POMCP (Frozen NN)** | **90.0%** | **100.0%** | **2.60** | **786.2** |
+
+### 3. Latent Belief-Graph MCTS (`DAG-Deep-POMCP`) vs. Standard Tree MCTS
+| Simulation Budget ($N_{\text{sims}}$) | Tree Mean / Max Depth | DAG Mean / Max Depth (Ours) | Unique DAG Nodes | PointNet Transposition Merge Rate |
+| :---: | :---: | :---: | :---: | :---: |
+| **$N = 15$** | 1.67 / 2.0 | **2.90 / 5.6** | 15.8 | **19.6%** |
+| **$N = 30$** | 1.94 / 3.0 | **3.64 / 6.0** | 26.4 | **27.8%** |
+| **$N = 60$** | 2.42 / 3.1 | **4.43 / 6.0** | 39.3 | **35.9%** |
+| **$N = 120$** | 2.81 / 4.0 | **5.15 / 6.0** | 46.1 | **39.9%** |
+| **$N = 200$** | 3.11 / 4.3 | **5.47 / 6.0** | 48.9 | **40.7%** |
 
 ---
 

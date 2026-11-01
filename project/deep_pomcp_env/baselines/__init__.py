@@ -4,6 +4,7 @@ from .heuristic_pomcp import HeuristicPOMCPPolicy
 from .reactive_tracker import ReactiveAStarPolicy
 from .deep_pomcp import DeepPOMCPPolicy
 from .et_deep_pomcp import EventTriggeredDeepPOMCPPolicy
+from .belief_graph_pomcp import BeliefGraphDeepPOMCPPolicy
 
 __all__ = [
     'BasePursuerPolicy',
@@ -11,5 +12,6 @@ __all__ = [
     'HeuristicPOMCPPolicy',
     'ReactiveAStarPolicy',
     'DeepPOMCPPolicy',
-    'EventTriggeredDeepPOMCPPolicy'
+    'EventTriggeredDeepPOMCPPolicy',
+    'BeliefGraphDeepPOMCPPolicy'
 ]
