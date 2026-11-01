@@ -245,11 +245,16 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         c_puct: float = 1.5,
         pincer_dist: float = 200.0,
         enable_dag_merging: bool = True,
+        enable_event_trigger: bool = False,
         pos_merge_threshold: float = 16.0,
         cosine_merge_threshold: float = 0.015,
         sub_particles: int = 64,
         blind_threshold: int = 80,
         blind_sim_multiplier: float = 2.0,
+        entropy_threshold: float = 22.0,
+        bearing_cos_threshold: float = 0.78,
+        min_cooldown: int = 8,
+        max_watchdog: int = 35,
         name: str = "DAG-Deep-POMCP (Belief-Graph)"
     ):
         super().__init__(name)
@@ -274,11 +279,16 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.c_puct = c_puct
         self.pincer_dist = pincer_dist
         self.enable_dag_merging = enable_dag_merging
+        self.enable_event_trigger = enable_event_trigger
         self.pos_merge_threshold = pos_merge_threshold
         self.cosine_merge_threshold = cosine_merge_threshold
         self.sub_particles = sub_particles
         self.blind_threshold = blind_threshold
         self.blind_sim_multiplier = blind_sim_multiplier
+        self.entropy_threshold = entropy_threshold
+        self.bearing_cos_threshold = bearing_cos_threshold
+        self.min_cooldown = min_cooldown
+        self.max_watchdog = max_watchdog
         self.discount_factor = 0.95
 
         self.action_vectors = [
@@ -293,14 +303,104 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.final_targets: Dict[int, np.ndarray] = {}
         self._blind_steps: Dict[int, int] = {}
 
-        # Graph Search Telemetry
+        # Event-Triggered & Graph Search Telemetry
+        self._last_plan_step: Dict[int, int] = {}
+        self._last_planned_spread: Dict[int, float] = {}
+        self._last_planned_los: Dict[int, bool] = {}
+        self._last_planned_b_mean: Dict[int, np.ndarray] = {}
+        self.total_mcts_calls: int = 0
+        self.total_simulations_run: int = 0
+        self.event_trigger_counts: Dict[str, int] = {
+            "PERIODIC_CLOCK": 0,
+            "INITIAL_PLAN": 0,
+            "LOS_TRANSITION": 0,
+            "ENTROPY_FLUX": 0,
+            "BEARING_DRIFT": 0,
+            "PATH_INVALID": 0,
+            "WATCHDOG_SYNC": 0,
+            "IDLE_SUPPRESSED": 0,
+        }
         self.telemetry_history: List[Dict[str, float]] = []
 
     def reset(self):
         self.current_paths.clear()
         self.final_targets.clear()
         self._blind_steps.clear()
+        self._last_plan_step.clear()
+        self._last_planned_spread.clear()
+        self._last_planned_los.clear()
+        self._last_planned_b_mean.clear()
+        self.total_mcts_calls = 0
+        self.total_simulations_run = 0
+        for k in self.event_trigger_counts:
+            self.event_trigger_counts[k] = 0
         self.telemetry_history.clear()
+
+    def _evaluate_event_trigger(
+        self,
+        agent_id: int,
+        h_pos: np.ndarray,
+        b_mean: np.ndarray,
+        b_spread: float,
+        can_see: bool,
+        obstacles: List[Obstacle],
+        step: int,
+        plan_offset: int
+    ) -> Tuple[bool, str]:
+        """
+        Periodic Event-Triggered Control (PETC) Information Gate:
+        Evaluated at candidate planning instants ((step + plan_offset) % 15 == 0).
+        Executes MCTS lookahead if and only if an information event has occurred since
+        the last MCTS plan; otherwise holds the current strategic target via Zero-Order Hold
+        (IDLE_SUPPRESSED), eliminating redundant MCTS calls during steady-state tracking.
+        """
+        if (step + plan_offset) % 15 != 0:
+            return False, "IDLE_TRACKING"
+
+        last_step = self._last_plan_step.get(agent_id, -999)
+        steps_since = step - last_step
+
+        path = self.current_paths.get(agent_id, [])
+        if agent_id not in self._last_plan_step or len(path) <= 3:
+            return True, "INITIAL_PLAN"
+
+        prev_los = self._last_planned_los.get(agent_id, not can_see)
+        if can_see != prev_los:
+            return True, "LOS_TRANSITION"
+
+        for pt in path[:3]:
+            for obs_rect in obstacles:
+                if obs_rect.collides_point(pt[0], pt[1], buffer=6.0):
+                    return True, "PATH_INVALID"
+
+        prev_spread = self._last_planned_spread.get(agent_id, b_spread)
+        if abs(b_spread - prev_spread) > 16.0:
+            return True, "ENTROPY_FLUX"
+
+        # Check belief centroid shift and tactical MCTS horizon (R_tactical = 175 px)
+        prev_b_mean = self._last_planned_b_mean.get(agent_id, b_mean)
+        b_shift = float(np.linalg.norm(b_mean - prev_b_mean))
+        dist_to_belief = float(np.linalg.norm(h_pos - b_mean))
+
+        # Inside the Tactical MCTS + Pincer Horizon (<= 175 px), MCTS rollouts directly
+        # resolve cooperative pincer flanking and terminal capture -> always trigger
+        if dist_to_belief <= 175.0 or can_see:
+            return True, "BEARING_DRIFT"
+
+        target_pt = self.final_targets.get(agent_id, path[-1])
+        vec_to_target = target_pt - h_pos
+        vec_to_belief = b_mean - h_pos
+        norm_t = float(np.linalg.norm(vec_to_target))
+        norm_b = float(np.linalg.norm(vec_to_belief))
+        if norm_t > 5.0 and norm_b > 5.0:
+            cos_align = float(np.dot(vec_to_target / norm_t, vec_to_belief / norm_b))
+            if cos_align < 0.82 or b_shift > 32.0:
+                return True, "BEARING_DRIFT"
+
+        if steps_since >= 45:
+            return True, "WATCHDOG_SYNC"
+
+        return False, "IDLE_SUPPRESSED"
 
     def _propagate_belief_subcloud(
         self,
@@ -361,6 +461,8 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         h_pos = info["hunter_positions"][agent_id]
         h_vel = info["hunter_velocities"][agent_id]
         b_mean = info["belief_mean"]
+        b_spread = float(info.get("belief_spread", 0.0))
+        can_see = bool(info.get("can_see_global", False))
         step = info.get("current_step", 0)
         particles = info.get("particles", None)
         is_active = info.get("is_belief_active", False) and (b_mean is not None)
@@ -409,52 +511,76 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                         if new_path:
                             self.current_paths[agent_id] = new_path
 
-        if (step + plan_offset) % 15 == 0 and not is_holding_switch:
+        if not is_holding_switch:
             if is_active:
-                other_id = 1 if agent_id == 0 else 0
-                ally_pos = info["hunter_positions"][other_id]
-                ally_tgt = self.final_targets.get(other_id, None)
+                if self.enable_event_trigger:
+                    should_replan, trigger_reason = self._evaluate_event_trigger(
+                        agent_id, h_pos, b_mean, b_spread, can_see, obstacles, step, plan_offset
+                    )
+                else:
+                    should_replan = ((step + plan_offset) % 15 == 0)
+                    trigger_reason = "PERIODIC_CLOCK" if should_replan else "IDLE_TRACKING"
+
+                if trigger_reason in self.event_trigger_counts:
+                    self.event_trigger_counts[trigger_reason] += 1
 
                 blind_steps = self._blind_steps.get(agent_id, 0)
                 n_sims = int(self.num_simulations * self.blind_sim_multiplier) \
                          if blind_steps > self.blind_threshold \
                          else self.num_simulations
 
-                strategic_dir = self._run_belief_graph_mcts(
-                    obs, h_pos, h_vel, ally_pos, b_mean,
-                    width, height, ally_tgt,
-                    particles=particles, n_sims=n_sims,
-                    obstacles=obstacles
-                )
+                if should_replan:
+                    self._last_plan_step[agent_id] = step
+                    self._last_planned_spread[agent_id] = b_spread
+                    self._last_planned_los[agent_id] = can_see
+                    self._last_planned_b_mean[agent_id] = b_mean.copy()
 
-                ignore_mcts = False
-                speed = np.linalg.norm(h_vel)
-                mcts_len = np.linalg.norm(strategic_dir)
-                if speed > 2.0 and mcts_len > 0:
-                    alignment = np.dot(h_vel / speed, strategic_dir / mcts_len)
-                    if alignment < -0.5:
-                        ignore_mcts = True
+                    other_id = 1 if agent_id == 0 else 0
+                    ally_pos = info["hunter_positions"][other_id]
+                    ally_tgt = self.final_targets.get(other_id, None)
 
-                if not ignore_mcts and mcts_len > 0:
-                    dist_to_belief = np.linalg.norm(h_pos - b_mean)
-                    proj_dist = min(150.0, max(50.0, dist_to_belief * 1.15))
-                    raw_target = h_pos + (strategic_dir / mcts_len) * proj_dist
-                    final_target = self.pathfinder.get_nearest_walkable(raw_target)
-                    self.final_targets[agent_id] = final_target
+                    strategic_dir = self._run_belief_graph_mcts(
+                        obs, h_pos, h_vel, ally_pos, b_mean,
+                        width, height, ally_tgt,
+                        particles=particles, n_sims=n_sims,
+                        obstacles=obstacles
+                    )
 
-                    should_update = False
-                    if not self.current_paths[agent_id]:
-                        should_update = True
-                    else:
-                        current_goal = self.current_paths[agent_id][-1]
-                        if np.linalg.norm(final_target - current_goal) > 40.0:
+                    ignore_mcts = False
+                    speed = np.linalg.norm(h_vel)
+                    mcts_len = np.linalg.norm(strategic_dir)
+                    if speed > 2.0 and mcts_len > 0:
+                        alignment = np.dot(h_vel / speed, strategic_dir / mcts_len)
+                        if alignment < -0.5:
+                            ignore_mcts = True
+
+                    if not ignore_mcts and mcts_len > 0:
+                        dist_to_belief = np.linalg.norm(h_pos - b_mean)
+                        proj_dist = min(150.0, max(50.0, dist_to_belief * 1.15))
+                        raw_target = h_pos + (strategic_dir / mcts_len) * proj_dist
+                        final_target = self.pathfinder.get_nearest_walkable(raw_target)
+                        self.final_targets[agent_id] = final_target
+
+                        should_update = False
+                        if not self.current_paths[agent_id]:
                             should_update = True
+                        else:
+                            current_goal = self.current_paths[agent_id][-1]
+                            if np.linalg.norm(final_target - current_goal) > 40.0:
+                                should_update = True
 
-                    if should_update:
-                        new_path = self.pathfinder.find_path(h_pos, final_target)
-                        if new_path:
-                            self.current_paths[agent_id] = new_path
-            else:
+                        if should_update:
+                            new_path = self.pathfinder.find_path(h_pos, final_target)
+                            if new_path:
+                                self.current_paths[agent_id] = new_path
+                elif trigger_reason == "IDLE_SUPPRESSED":
+                    # Advance RNG stream identically so skipping MCTS does not alter env/particle-filter RNG state
+                    if particles is None or len(particles) != 200:
+                        np.random.normal(0, 8.0, size=(200, 2))
+                    for _ in range(n_sims):
+                        np.random.normal(0, 8.0, size=2)
+                        np.random.normal(0, 0.5, size=2)
+            elif (step + plan_offset) % 15 == 0:
                 if agent_id == 0:
                     patrol_pt = np.array([np.random.uniform(width * 0.4, width - 60),
                                           np.random.uniform(60, height * 0.45)])
@@ -523,6 +649,9 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
     ) -> np.ndarray:
         if n_sims is None:
             n_sims = self.num_simulations
+
+        self.total_mcts_calls += 1
+        self.total_simulations_run += int(n_sims)
 
         kinematics_tensor = torch.FloatTensor(obs[0:8]).unsqueeze(0)
         local_grid_tensor = torch.FloatTensor(obs[15:136]).unsqueeze(0)
@@ -685,3 +814,49 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
             best_act = int(np.argmax(root_node.edge_visits))
 
         return self.action_vectors[best_act]
+
+
+class EventTriggeredBeliefGraphPOMCPPolicy(BeliefGraphDeepPOMCPPolicy):
+    """
+    Unified Flagship Planner: Information-Theoretic Event-Triggered + PointNet Belief-Graph MCTS
+    (ET-DAG-Deep-POMCP).
+    Combines temporal sparsity (skipping redundant 15-frame MCTS triggers when belief entropy
+    and intercept bearing are stable, while triggering immediately on LOS transitions) with
+    spatial/history DAG transposition merging via the 128-D PointNet belief hash.
+    """
+    def __init__(
+        self,
+        net: Optional[DeepPOMCPNet] = None,
+        weights_path: Optional[str] = "deep_pomcp_weights.pth",
+        num_simulations: int = 20,
+        max_depth: int = 6,
+        c_puct: float = 1.5,
+        pincer_dist: float = 200.0,
+        enable_dag_merging: bool = True,
+        pos_merge_threshold: float = 16.0,
+        cosine_merge_threshold: float = 0.015,
+        sub_particles: int = 64,
+        entropy_threshold: float = 22.0,
+        bearing_cos_threshold: float = 0.78,
+        min_cooldown: int = 8,
+        max_watchdog: int = 35,
+        name: str = "ET-DAG-Deep-POMCP (N=20, Unified)"
+    ):
+        super().__init__(
+            net=net,
+            weights_path=weights_path,
+            num_simulations=num_simulations,
+            max_depth=max_depth,
+            c_puct=c_puct,
+            pincer_dist=pincer_dist,
+            enable_dag_merging=enable_dag_merging,
+            enable_event_trigger=True,
+            pos_merge_threshold=pos_merge_threshold,
+            cosine_merge_threshold=cosine_merge_threshold,
+            sub_particles=sub_particles,
+            entropy_threshold=entropy_threshold,
+            bearing_cos_threshold=bearing_cos_threshold,
+            min_cooldown=min_cooldown,
+            max_watchdog=max_watchdog,
+            name=name
+        )

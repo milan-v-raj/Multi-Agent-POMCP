@@ -60,12 +60,14 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | **$N = 120$** | 4.65 / 6.00 | **4.85 / 6.00** | 81.5 $\to$ **71.9** | **33.4%** |
 | **$N = 200$** | 5.09 / 6.00 | **5.25 / 6.00** | 95.9 $\to$ **81.3** | **34.3%** |
 
-| Adversarial Capture Ablation (`u_trap`, `dense_maze`, `bimodal_fork`, `figure_8`) | Win Rate (%) | Mean TTC (steps) | Measured Mean / Max Depth | Merge Rate (%) |
-| :--- | :---: | :---: | :---: | :---: |
-| **Tree Deep-POMCP ($N=20$, `enable_dag_merging=False`)** | 50.0% | 536.0 | 1.98 / 3.13 | 0.0% |
-| **`DAG-Deep-POMCP` ($N=20$, `enable_dag_merging=True`, Ours)** | **75.0% (+25.0%)** | 585.9 | **2.08 / 3.49** | **11.3%** |
-| **Tree Deep-POMCP ($N=60$, `enable_dag_merging=False`)** | 66.7% | 341.4 | 3.32 / 5.20 | 0.0% |
-| **`DAG-Deep-POMCP` ($N=60$, `enable_dag_merging=True`, Ours)** | **66.7%** | 392.4 | **3.42 / 5.37** | **20.7%** |
+| $2 \times 2$ Factorial + Budget Ablation (`u_trap`, `dense_maze`, `bimodal_fork`, `figure_8`) | Win Rate (%) | Mean TTC (steps) | MCTS Calls / Ep | Total Sims / Ep | Latency (ms) | Mean / Max Depth | Merge Rate |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Tree Deep-POMCP ($N=20$, Periodic)** | 50.0% | 536.0 | 94.8 | 1895.0 | 3.37 ms | 1.98 / 3.13 | 0.0% |
+| **ET-Tree Deep-POMCP ($N=20$, Event-Gated)** | 75.0% | 508.1 | 66.4 | 1328.3 | 3.11 ms | 1.98 / 3.13 | 0.0% |
+| **`DAG-Deep-POMCP` ($N=20$, Periodic, Ours)** | 75.0% | 585.9 | 77.7 | 1553.3 | 3.52 ms | 2.08 / 3.49 | 11.3% |
+| **`ET-DAG-Deep-POMCP` ($N=20$, Unified, Ours)** | **83.3%** | **515.5** | **60.7** | **1213.3 (-67.7%)** | **3.47 ms** | **2.09 / 3.48** | **11.1%** |
+| **Tree Deep-POMCP ($N=60$, Periodic)** | 66.7% | 341.4 | 62.7 | 3760.0 | 12.33 ms | 3.32 / 5.20 | 0.0% |
+| **`DAG-Deep-POMCP` ($N=60$, Periodic, Ours)** | 66.7% | 392.4 | 67.2 | 4035.0 | 12.73 ms | 3.42 / 5.37 | 20.7% |
 
 ---
 

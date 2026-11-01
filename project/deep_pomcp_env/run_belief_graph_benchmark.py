@@ -198,7 +198,7 @@ def run_benchmark(episodes_per_preset: int = 5):
         writer.writerows(scaling_rows)
 
     # -------------------------------------------------------------------------
-    # PART 3: Controlled Adversarial Capture Benchmark (enable_dag_merging=False vs True)
+    # PART 3: Controlled 2x2 Factorial + Budget Ablation vs. Strategic Evader
     # -------------------------------------------------------------------------
     presets = ["u_trap", "dense_maze", "bimodal_fork", "figure_8"]
     evader = StrategicAdversarialEvader(max_force=0.50)
@@ -206,24 +206,38 @@ def run_benchmark(episodes_per_preset: int = 5):
     contenders = [
         BeliefGraphDeepPOMCPPolicy(
             weights_path=weights_path, num_simulations=20, max_depth=6,
-            enable_dag_merging=False, name="Tree Deep-POMCP (N=20)"
+            enable_dag_merging=False, enable_event_trigger=False,
+            name="Tree Deep-POMCP (N=20)"
         ),
         BeliefGraphDeepPOMCPPolicy(
             weights_path=weights_path, num_simulations=20, max_depth=6,
-            enable_dag_merging=True, name="DAG-Deep-POMCP (N=20, Ours)"
+            enable_dag_merging=False, enable_event_trigger=True,
+            name="ET-Tree Deep-POMCP (N=20)"
+        ),
+        BeliefGraphDeepPOMCPPolicy(
+            weights_path=weights_path, num_simulations=20, max_depth=6,
+            enable_dag_merging=True, enable_event_trigger=False,
+            name="DAG-Deep-POMCP (N=20, Ours)"
+        ),
+        BeliefGraphDeepPOMCPPolicy(
+            weights_path=weights_path, num_simulations=20, max_depth=6,
+            enable_dag_merging=True, enable_event_trigger=True,
+            name="ET-DAG-Deep-POMCP (N=20, Unified)"
         ),
         BeliefGraphDeepPOMCPPolicy(
             weights_path=weights_path, num_simulations=60, max_depth=6,
-            enable_dag_merging=False, name="Tree Deep-POMCP (N=60)"
+            enable_dag_merging=False, enable_event_trigger=False,
+            name="Tree Deep-POMCP (N=60)"
         ),
         BeliefGraphDeepPOMCPPolicy(
             weights_path=weights_path, num_simulations=60, max_depth=6,
-            enable_dag_merging=True, name="DAG-Deep-POMCP (N=60, Ours)"
+            enable_dag_merging=True, enable_event_trigger=False,
+            name="DAG-Deep-POMCP (N=60, Ours)"
         )
     ]
 
-    print("\n[3] CONTROLLED HEAD-TO-HEAD CAPTURE BENCHMARK VS. STRATEGIC ADVERSARIAL EVADER:", flush=True)
-    print("-" * 100, flush=True)
+    print("\n[3] CONTROLLED FACTORIAL CAPTURE BENCHMARK VS. STRATEGIC ADVERSARIAL EVADER:", flush=True)
+    print("-" * 115, flush=True)
 
     episode_rows = []
     for policy in contenders:
@@ -233,6 +247,10 @@ def run_benchmark(episodes_per_preset: int = 5):
         merge_rates = []
         mean_depths = []
         max_depths = []
+        mcts_calls_list = []
+        total_sims_list = []
+        sims_per_step_list = []
+        latencies_ms_list = []
 
         for preset in presets:
             for ep in range(episodes_per_preset):
@@ -245,12 +263,15 @@ def run_benchmark(episodes_per_preset: int = 5):
 
                 step = 0
                 captured = False
+                ep_latencies = []
                 while step < 1200:
                     actions = {}
                     for i in range(2):
+                        t0 = time.perf_counter()
                         actions[f"agent_{i}"] = policy.get_action(
                             obs[f"agent_{i}"], info, i, env.obstacles, env.width, env.height
                         )
+                        ep_latencies.append((time.perf_counter() - t0) * 1000.0)
                     obs, rewards, terminated, truncated, info = env.step(actions)
                     step += 1
                     if terminated["__all__"] or truncated["__all__"]:
@@ -270,9 +291,18 @@ def run_benchmark(episodes_per_preset: int = 5):
                 else:
                     ep_merge_rate, ep_mean_depth, ep_max_depth = 0.0, 0.0, 0.0
 
+                ep_mcts_calls = int(policy.total_mcts_calls)
+                ep_total_sims = int(policy.total_simulations_run)
+                ep_sims_per_step = float(ep_total_sims) / max(1.0, float(step * 2))
+                ep_lat_ms = float(np.mean(ep_latencies)) if ep_latencies else 0.0
+
                 merge_rates.append(ep_merge_rate)
                 mean_depths.append(ep_mean_depth)
                 max_depths.append(ep_max_depth)
+                mcts_calls_list.append(ep_mcts_calls)
+                total_sims_list.append(ep_total_sims)
+                sims_per_step_list.append(ep_sims_per_step)
+                latencies_ms_list.append(ep_lat_ms)
 
                 episode_rows.append({
                     "policy": policy.name,
@@ -281,6 +311,10 @@ def run_benchmark(episodes_per_preset: int = 5):
                     "seed": seed,
                     "captured": captured,
                     "steps": step,
+                    "mcts_calls": ep_mcts_calls,
+                    "total_sims": ep_total_sims,
+                    "sims_per_decision": round(ep_sims_per_step, 3),
+                    "mean_latency_ms": round(ep_lat_ms, 3),
                     "mean_merge_rate_pct": round(ep_merge_rate, 2),
                     "mean_depth": round(ep_mean_depth, 2),
                     "mean_max_depth": round(ep_max_depth, 2)
@@ -291,10 +325,15 @@ def run_benchmark(episodes_per_preset: int = 5):
         mean_m_rate = float(np.mean(merge_rates)) if merge_rates else 0.0
         avg_mean_d = float(np.mean(mean_depths)) if mean_depths else 0.0
         avg_max_d = float(np.mean(max_depths)) if max_depths else 0.0
+        avg_calls = float(np.mean(mcts_calls_list)) if mcts_calls_list else 0.0
+        avg_sims = float(np.mean(total_sims_list)) if total_sims_list else 0.0
+        avg_sims_step = float(np.mean(sims_per_step_list)) if sims_per_step_list else 0.0
+        avg_lat_ms = float(np.mean(latencies_ms_list)) if latencies_ms_list else 0.0
 
         print(
-            f"  [{policy.name:28s}] -> Win Rate: {win_rate:5.1f}% | Mean TTC: {mean_ttc:6.1f} | "
-            f"Mean/Max Depth: {avg_mean_d:4.2f}/{avg_max_d:4.2f} | Merge Rate: {mean_m_rate:5.1f}%",
+            f"  [{policy.name:33s}] -> Win: {win_rate:5.1f}% | TTC: {mean_ttc:5.1f} | "
+            f"Calls/Ep: {avg_calls:5.1f} | Sims/Ep: {avg_sims:6.1f} ({avg_sims_step:4.2f}/dec) | "
+            f"Lat: {avg_lat_ms:4.2f}ms | Depth: {avg_mean_d:4.2f}/{avg_max_d:4.2f} | Merge: {mean_m_rate:4.1f}%",
             flush=True
         )
 

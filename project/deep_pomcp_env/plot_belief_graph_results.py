@@ -93,50 +93,54 @@ def generate_plots():
     ax2.grid(True, axis="y", linestyle="--", alpha=0.35)
 
     # -------------------------------------------------------------------------
-    # Panel C: Adversarial Win Rate & Mean TTC Comparison
+    # Panel C: 2x2 Factorial + Budget Ablation Win Rate & Total Sims/Ep
     # -------------------------------------------------------------------------
     ax3 = axes[2]
     policies_order = [
         "Tree Deep-POMCP (N=20)",
+        "ET-Tree Deep-POMCP (N=20)",
         "DAG-Deep-POMCP (N=20, Ours)",
+        "ET-DAG-Deep-POMCP (N=20, Unified)",
         "Tree Deep-POMCP (N=60)",
         "DAG-Deep-POMCP (N=60, Ours)"
     ]
     short_labels = [
         "Tree\n(N=20)",
-        "DAG (Ours)\n(N=20)",
+        "ET-Tree\n(N=20)",
+        "DAG\n(N=20)",
+        "ET-DAG\n(N=20)",
         "Tree\n(N=60)",
-        "DAG (Ours)\n(N=60)"
+        "DAG\n(N=60)"
     ]
 
     win_rates = []
-    mean_ttcs = []
+    mean_sims = []
     for p_name in policies_order:
         p_rows = [r for r in adv_data if r["policy"] == p_name]
         if p_rows:
             wins = sum(1 for r in p_rows if r["captured"].lower() == "true")
             wr = (wins / len(p_rows)) * 100.0
-            cap_steps = [int(r["steps"]) for r in p_rows if r["captured"].lower() == "true"]
-            ttc = float(np.mean(cap_steps)) if cap_steps else 1200.0
+            sims = [float(r["total_sims"]) for r in p_rows]
+            avg_s = float(np.mean(sims)) if sims else 0.0
         else:
-            wr, ttc = 0.0, 1200.0
+            wr, avg_s = 0.0, 0.0
         win_rates.append(wr)
-        mean_ttcs.append(ttc)
+        mean_sims.append(avg_s)
 
     x_pos = np.arange(len(policies_order))
-    colors = ["#e08214", "#1b7837", "#d73027", "#00441b"]
-    b3 = ax3.bar(x_pos, win_rates, width=0.52, color=colors, edgecolor="black", alpha=0.9)
-    for bar, wr, ttc in zip(b3, win_rates, mean_ttcs):
+    colors = ["#e08214", "#fdae61", "#1b7837", "#00441b", "#d73027", "#4d9221"]
+    b3 = ax3.bar(x_pos, win_rates, width=0.58, color=colors, edgecolor="black", alpha=0.9)
+    for bar, wr, s_ep in zip(b3, win_rates, mean_sims):
         ax3.text(
             bar.get_x() + bar.get_width() / 2.0,
             bar.get_height() + 2.0,
-            f"{wr:.1f}%\n({int(ttc)}s)",
-            ha="center", va="bottom", fontsize=9.0, fontweight="bold"
+            f"{wr:.1f}%\n({int(s_ep)} sims)",
+            ha="center", va="bottom", fontsize=8.0, fontweight="bold"
         )
 
     ax3.set_xticks(x_pos)
-    ax3.set_xticklabels(short_labels, fontsize=9.5, fontweight="bold")
-    ax3.set_title("(c) Adversarial Capture Rate & Mean TTC")
+    ax3.set_xticklabels(short_labels, fontsize=8.8, fontweight="bold")
+    ax3.set_title("(c) Factorial Ablation: Win Rate & Sims/Ep")
     ax3.set_ylabel("Capture Win Rate (%)")
     ax3.set_ylim(0, 115)
     ax3.grid(True, axis="y", linestyle="--", alpha=0.35)
