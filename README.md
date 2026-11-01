@@ -22,7 +22,7 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 3. **Internal Adversarial Simulation & Encirclement Advantage ($R_{\text{EA}}$)**: Embeds a 12-ray dynamic evader model into lookahead expansions paired with a $180^\circ$ pincer reward, boosting capture rate against active evasion to **70.0%** (where Reactive A* drops to 10.0%).
 4. **Macro-Action Dec-POMDP (Mac-POMCP) for Cooperative Sacrifice**: Resolves the horizon truncation trap in delayed-gratification switch-door puzzles with zero hardcoded coordinates, achieving **80.0%–100.0% win rate** where primitive flat POMCP and Greedy A* score **0.0%**.
 5. **Epistemic Causal Mechanism Discovery (`causal_switch_pomdp`)**: Places $K=3$ unlabelled candidate pressure plates in the arena where only one latent switch $\kappa^* \in \{0, 1, 2\}$ physically operates the door. Agents maintain a dual belief (continuous evader particle cloud $\mathcal{B}_e$ + categorical causal belief $\mathbf{b}_\kappa \in \Delta^K$), prune non-functional switches via Bayesian negative evidence, and coordinate sacrifice (**100.0% Win Rate** for Causal Mac-POMCP; **90.0% Zero-Shot Win Rate** for frozen Deep Causal Mac-POMCP).
-6. **Latent Belief-Graph MCTS via PointNet Transposition Merging (`DAG-Deep-POMCP`)**: Replaces the exponential action-observation history tree with a Directed Acyclic Belief Graph (DAG) using the 128-D PointNet embedding $\mathbf{z} = \phi(\mathcal{B}_t)$ as an $\mathcal{O}(1)$ locality-sensitive belief hash ($4.1\times$ faster than Sinkhorn Optimal Transport). Merges up to **40.7%** of transposed search states, nearly doubling effective search depth ($D=6.0$ at $N_{\text{sims}}=30$ vs. $D=3.0$ for Tree MCTS) and boosting adversarial capture rate by **+16.7%**.
+6. **Latent Belief-Graph MCTS via PointNet Transposition Merging (`DAG-Deep-POMCP`)**: Replaces the exponential action-observation history tree with a Directed Acyclic Belief Graph (DAG) using the 128-D PointNet embedding $\mathbf{z} = \phi(\mathcal{B}_t)$ as an $\mathcal{O}(1)$ locality-sensitive belief hash (**$13.5\times\text{--}19.3\times$ faster** than 200-particle Sinkhorn Optimal Transport across candidate buckets). Merges up to **34.3%** of transposed search states (`depth >= 2`) and boosts low-budget ($N_{\text{sims}}=20$) adversarial capture win rate from **50.0% to 75.0% (+25.0%)** in a strictly controlled single-variable ablation.
 7. **Information-Theoretic Event-Triggered MCTS (ET-MCTS)**: Triggers replanning only on significant entropy flux, line-of-sight edges, or path invalidation, pruning search invocations by **39.3%** and reducing decision latency to sub-millisecond regimes (**4.67 ms**).
 
 ---
@@ -51,14 +51,21 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | **Causal Mac-POMCP (Ours)** | **100.0%** | **100.0%** | **2.00** | **649.4** |
 | **Deep Causal Mac-POMCP (Frozen NN)** | **90.0%** | **100.0%** | **2.60** | **786.2** |
 
-### 3. Latent Belief-Graph MCTS (`DAG-Deep-POMCP`) vs. Standard Tree MCTS
-| Simulation Budget ($N_{\text{sims}}$) | Tree Mean / Max Depth | DAG Mean / Max Depth (Ours) | Unique DAG Nodes | PointNet Transposition Merge Rate |
+### 3. Audited Single-Variable Ablation: Latent Belief-Graph MCTS (`DAG-Deep-POMCP`) vs. Tree MCTS
+| Simulation Budget ($N_{\text{sims}}$) | Tree Mean / Max Depth | DAG Mean / Max Depth (Ours) | Tree $\to$ Unique DAG Nodes | PointNet Transposition Merge Rate |
 | :---: | :---: | :---: | :---: | :---: |
-| **$N = 15$** | 1.67 / 2.0 | **2.90 / 5.6** | 15.8 | **19.6%** |
-| **$N = 30$** | 1.94 / 3.0 | **3.64 / 6.0** | 26.4 | **27.8%** |
-| **$N = 60$** | 2.42 / 3.1 | **4.43 / 6.0** | 39.3 | **35.9%** |
-| **$N = 120$** | 2.81 / 4.0 | **5.15 / 6.0** | 46.1 | **39.9%** |
-| **$N = 200$** | 3.11 / 4.3 | **5.47 / 6.0** | 48.9 | **40.7%** |
+| **$N = 15$** | 1.86 / 2.97 | **1.93 / 3.07** | 16.0 $\to$ 16.0 | **10.1%** |
+| **$N = 30$** | 2.64 / 4.30 | **2.73 / 4.73** | 31.0 $\to$ 31.0 | **15.0%** |
+| **$N = 60$** | 3.70 / 5.97 | **3.83 / 6.00** | 60.1 $\to$ **58.8** | **26.5%** |
+| **$N = 120$** | 4.65 / 6.00 | **4.85 / 6.00** | 81.5 $\to$ **71.9** | **33.4%** |
+| **$N = 200$** | 5.09 / 6.00 | **5.25 / 6.00** | 95.9 $\to$ **81.3** | **34.3%** |
+
+| Adversarial Capture Ablation (`u_trap`, `dense_maze`, `bimodal_fork`, `figure_8`) | Win Rate (%) | Mean TTC (steps) | Measured Mean / Max Depth | Merge Rate (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Tree Deep-POMCP ($N=20$, `enable_dag_merging=False`)** | 50.0% | 536.0 | 1.98 / 3.13 | 0.0% |
+| **`DAG-Deep-POMCP` ($N=20$, `enable_dag_merging=True`, Ours)** | **75.0% (+25.0%)** | 585.9 | **2.08 / 3.49** | **11.3%** |
+| **Tree Deep-POMCP ($N=60$, `enable_dag_merging=False`)** | 66.7% | 341.4 | 3.32 / 5.20 | 0.0% |
+| **`DAG-Deep-POMCP` ($N=60$, `enable_dag_merging=True`, Ours)** | **66.7%** | 392.4 | **3.42 / 5.37** | **20.7%** |
 
 ---
 

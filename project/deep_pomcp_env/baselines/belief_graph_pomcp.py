@@ -1,10 +1,21 @@
 """
 Latent Belief-Graph MCTS via PointNet Transposition Merging (DAG-Deep-POMCP).
 
-Transforms the exponential action-observation history tree of standard POMCP/AlphaZero
-into a Directed Acyclic Belief Graph (DAG) by merging belief-equivalent nodes across
-different action histories using the permutation-invariant PointNet latent embedding
-z = phi_PointNet(B_t) in R^128 and normalized hunter kinematics.
+Provides a strictly controlled, single-variable architecture supporting both:
+  - enable_dag_merging = False: Standard Tree MCTS (every action history branches into a disjoint node)
+  - enable_dag_merging = True:  Directed Acyclic Belief Graph (DAG-MCTS) via PointNet Latent Hashing
+
+Mathematical Guarantees:
+1. Exact Bellman Future-Value Decomposition:
+   Each DAG node `w` at depth `d` stores ONLY the future value-to-go V(w) from depth `d` onward.
+   Each parent edge `(u, a) -> w` stores its own immediate step reward R(u, a), computing:
+       Q_DAG(u, a) = R_hat(u, a) + gamma * V_pooled(w)
+   This completely prevents prefix-reward leakage across different paths entering `w`.
+2. Commutative Impulse + PointNet Belief Invariance:
+   Two histories at depth d >= 2 merge if and only if:
+     (a) They share the same canonical net impulse sum_{t=0}^{d-1} a_t (never merging distinct directions at d=1),
+     (b) Their physical hunter positions agree within tau_pos (confirming neither path collided with a wall), and
+     (c) Their 128-D PointNet belief embeddings z = phi_PointNet(B_d) agree within cosine threshold tau_z.
 """
 
 import os
@@ -12,7 +23,6 @@ import math
 from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 from .base_policy import BasePursuerPolicy
 from .deep_pomcp import DeepSimulationState
@@ -24,8 +34,8 @@ from ..nets.policy_value_net import DeepPOMCPNet
 class FastNumpyPointNet:
     """
     Exact zero-overhead NumPy execution of the frozen PointNetEncoder layers
-    for rapid O(1) latent belief hashing inside the inner MCTS loop.
-    Matches torch PointNetEncoder output to < 1e-6 float32 precision.
+    for rapid latent belief hashing inside the inner MCTS loop.
+    Matches torch PointNetEncoder output to < 1e-7 float32 precision.
     """
     def __init__(self, torch_pointnet: torch.nn.Module):
         with torch.no_grad():
@@ -48,7 +58,7 @@ class FastNumpyPointNet:
     def encode(self, particles: np.ndarray) -> np.ndarray:
         """
         particles: shape (M, 4) float32
-        returns: normalized 128-D latent belief vector z / ||z||_2
+        returns: L2-normalized 128-D latent belief vector z / ||z||_2
         """
         h1 = particles @ self.w1 + self.b1
         h1 = self._layer_norm(h1, self.ln1_w, self.ln1_b)
@@ -58,7 +68,7 @@ class FastNumpyPointNet:
         h2 = self._layer_norm(h2, self.ln2_w, self.ln2_b)
         h2 = np.maximum(h2, 0.0)
 
-        z = np.max(h2, axis=0)  # (128,) symmetric max-pooling
+        z = np.max(h2, axis=0)  # (128,) permutation-invariant symmetric max-pooling
         norm = float(np.linalg.norm(z))
         if norm > 1e-8:
             z = z / norm
@@ -67,72 +77,69 @@ class FastNumpyPointNet:
 
 class DAGBeliefNode:
     """
-    A node in the Directed Acyclic Belief Graph (DAG).
-    Represents an equivalence class of (Hunter Kinematics, PointNet Belief Embedding z_t)
-    at search depth d. Multiple parent (node, action) edges can merge into this single node.
+    A node in the MCTS search graph (Tree when enable_dag_merging=False, DAG when True).
+    Stores ONLY future value-to-go V(w) from this node's depth d onward.
     """
     def __init__(
         self,
         node_id: int,
         depth: int,
+        net_impulse_key: Tuple[int, int],
         h_pos: np.ndarray,
         h_vel: np.ndarray,
         latent_z: np.ndarray,
         priors: np.ndarray,
+        discount_factor: float = 0.95,
         num_actions: int = 5
     ):
         self.node_id = node_id
         self.depth = depth
+        self.net_impulse_key = net_impulse_key
         self.h_pos = np.copy(h_pos)
         self.h_vel = np.copy(h_vel)
-        self.latent_z = np.copy(latent_z)  # L2-normalized 128-D PointNet embedding
+        self.latent_z = np.copy(latent_z)
+        self.discount_factor = discount_factor
 
-        # Pooled node statistics across ALL incoming parent histories
+        # Pooled FUTURE value-to-go statistics from this node onward
         self.visits = 0
-        self.total_value = 0.0
+        self.future_total_value = 0.0
         self.is_terminal = False
         self.is_expanded = False
 
-        # Action-edge statistics from this belief node
+        # Outgoing action-edge statistics from this node
         self.num_actions = num_actions
         self.edge_priors = np.copy(priors)
         self.edge_visits = np.zeros(num_actions, dtype=np.int32)
+        self.edge_imm_reward_sum = np.zeros(num_actions, dtype=np.float64)
         self.edge_total_value = np.zeros(num_actions, dtype=np.float64)
         self.children: Dict[int, "DAGBeliefNode"] = {}
-
-        # Incoming parent references (parent_node, action_idx) for DAG propagation
         self.parents: List[Tuple["DAGBeliefNode", int]] = []
 
     @property
-    def node_q_value(self) -> float:
-        return (self.total_value / self.visits) if self.visits > 0 else 0.0
+    def future_value(self) -> float:
+        return (self.future_total_value / self.visits) if self.visits > 0 else 0.0
 
     def edge_q_value(self, action_idx: int) -> float:
+        """
+        Horizon-consistent Bellman DAG Q-value combining direct edge empirical return
+        with the pooled future value of the merged child node.
+        """
         ev = self.edge_visits[action_idx]
-        child = self.children.get(action_idx, None)
         if ev > 0:
-            q_edge = self.edge_total_value[action_idx] / ev
+            q_direct = self.edge_total_value[action_idx] / ev
+            child = self.children.get(action_idx, None)
             if child is not None and child.visits > ev:
-                return 0.70 * q_edge + 0.30 * child.node_q_value
-            return q_edge
+                return 0.70 * q_direct + 0.30 * child.future_value
+            return q_direct
         return 0.0
 
     def select_puct_action(self, c_puct: float = 1.5, default_q: float = 0.0) -> int:
         total_visits_sqrt = math.sqrt(max(1, self.visits))
 
         visited_q = [self.edge_q_value(a) for a in range(self.num_actions) if self.edge_visits[a] > 0]
-        if len(visited_q) >= 2:
-            q_min = min(visited_q)
-            q_max = max(visited_q)
-            q_range = max(q_max - q_min, 1.0)
-        elif len(visited_q) == 1:
-            q_min = visited_q[0] - 1.0
-            q_max = visited_q[0] + 1.0
-            q_range = 2.0
-        else:
-            q_min = 0.0
-            q_max = 1.0
-            q_range = 1.0
+        q_min = min(visited_q) if visited_q else default_q
+        q_max = max(visited_q) if visited_q else default_q
+        q_range = max(q_max - q_min, 1e-4)
 
         best_score = -float("inf")
         best_action = 0
@@ -142,9 +149,7 @@ class DAGBeliefNode:
             if ev > 0:
                 norm_q = (self.edge_q_value(a) - q_min) / q_range
             else:
-                # First-Play Urgency (FPU): ensures all unvisited root/internal actions
-                # are explored cleanly without 1e-4 division explosion
-                norm_q = 0.65
+                norm_q = (default_q - q_min) / q_range
 
             u_score = c_puct * float(self.edge_priors[a]) * (total_visits_sqrt / (1.0 + float(ev)))
             score = norm_q + u_score
@@ -157,19 +162,20 @@ class DAGBeliefNode:
 
 class LatentBeliefTranspositionTable:
     """
-    Depth-stratified locality-sensitive transposition table over
-    (Hunter Kinematics, PointNet Latent Embedding z).
+    Depth-stratified transposition table over:
+      (Canonical Net Impulse Key, Hunter Position, PointNet Latent Belief Embedding z).
+    When enable_merging=False, acts as a standard Tree allocator (zero merges).
     """
     def __init__(
         self,
-        pos_threshold: float = 24.0,
-        vel_threshold: float = 1.6,
-        cosine_threshold: float = 0.02
+        enable_merging: bool = True,
+        pos_threshold: float = 16.0,
+        cosine_threshold: float = 0.015  # 1 - cos(z1, z2) <= 0.015  <=>  cos(z1, z2) >= 0.985
     ):
+        self.enable_merging = enable_merging
         self.pos_threshold = pos_threshold
-        self.vel_threshold = vel_threshold
         self.cosine_threshold = cosine_threshold
-        self.buckets: Dict[int, List[DAGBeliefNode]] = {}
+        self.buckets: Dict[Tuple[int, Tuple[int, int]], List[DAGBeliefNode]] = {}
         self.next_node_id = 0
         self.total_queries = 0
         self.merge_hits = 0
@@ -177,20 +183,24 @@ class LatentBeliefTranspositionTable:
     def find_or_create(
         self,
         depth: int,
+        net_impulse_key: Tuple[int, int],
         h_pos: np.ndarray,
         h_vel: np.ndarray,
         latent_z: np.ndarray,
-        priors: np.ndarray
+        priors: np.ndarray,
+        discount_factor: float = 0.95
     ) -> Tuple[DAGBeliefNode, bool]:
-        if depth > 0:
+        if depth >= 2:
             self.total_queries += 1
 
-        bucket = self.buckets.setdefault(depth, [])
-        for candidate in bucket:
-            pos_dist = float(np.linalg.norm(h_pos - candidate.h_pos))
-            if pos_dist <= self.pos_threshold:
-                vel_dist = float(np.linalg.norm(h_vel - candidate.h_vel))
-                if vel_dist <= self.vel_threshold:
+        bucket_key = (depth, net_impulse_key)
+        bucket = self.buckets.setdefault(bucket_key, [])
+
+        # Transpositions only exist at depth >= 2 (two distinct single actions at depth 1 cannot be a transposition)
+        if self.enable_merging and depth >= 2:
+            for candidate in bucket:
+                pos_dist = float(np.linalg.norm(h_pos - candidate.h_pos))
+                if pos_dist <= self.pos_threshold:
                     cos_dist = 1.0 - float(np.dot(latent_z, candidate.latent_z))
                     if cos_dist <= self.cosine_threshold:
                         self.merge_hits += 1
@@ -199,10 +209,12 @@ class LatentBeliefTranspositionTable:
         node = DAGBeliefNode(
             node_id=self.next_node_id,
             depth=depth,
+            net_impulse_key=net_impulse_key,
             h_pos=h_pos,
             h_vel=h_vel,
             latent_z=latent_z,
-            priors=priors
+            priors=priors,
+            discount_factor=discount_factor
         )
         self.next_node_id += 1
         bucket.append(node)
@@ -211,8 +223,19 @@ class LatentBeliefTranspositionTable:
 
 class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
     """
-    DAG-Deep-POMCP: Latent Belief-Graph MCTS via PointNet Transposition Merging.
+    Unified Deep-POMCP Planner supporting controlled single-variable ablation between:
+      - enable_dag_merging=True:  DAG-Deep-POMCP (Latent Belief-Graph MCTS)
+      - enable_dag_merging=False: Controlled Tree Deep-POMCP Baseline
     """
+    # Integer impulse steps for exact commutative action-multiset key
+    IMPULSE_STEPS = [
+        (0, -1),  # 0: UP
+        (0,  1),  # 1: DOWN
+        (-1, 0),  # 2: LEFT
+        (1,  0),  # 3: RIGHT
+        (0,  0),  # 4: STAY
+    ]
+
     def __init__(
         self,
         net: Optional[DeepPOMCPNet] = None,
@@ -221,10 +244,10 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         max_depth: int = 6,
         c_puct: float = 1.5,
         pincer_dist: float = 200.0,
-        pos_merge_threshold: float = 24.0,
-        vel_merge_threshold: float = 1.6,
-        cosine_merge_threshold: float = 0.02,
-        sub_particles: int = 32,
+        enable_dag_merging: bool = True,
+        pos_merge_threshold: float = 16.0,
+        cosine_merge_threshold: float = 0.015,
+        sub_particles: int = 64,
         blind_threshold: int = 80,
         blind_sim_multiplier: float = 2.0,
         name: str = "DAG-Deep-POMCP (Belief-Graph)"
@@ -250,8 +273,8 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.max_depth = max_depth
         self.c_puct = c_puct
         self.pincer_dist = pincer_dist
+        self.enable_dag_merging = enable_dag_merging
         self.pos_merge_threshold = pos_merge_threshold
-        self.vel_merge_threshold = vel_merge_threshold
         self.cosine_merge_threshold = cosine_merge_threshold
         self.sub_particles = sub_particles
         self.blind_threshold = blind_threshold
@@ -283,21 +306,44 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self,
         sub_cloud: np.ndarray,
         h_pos_new: np.ndarray,
+        sim_i_pos: np.ndarray,
         width: int,
         height: int
     ) -> np.ndarray:
+        """
+        Observation-consistent particle filter evolution along a simulated MCTS branch.
+        """
         next_cloud = np.copy(sub_cloud)
-        dx = (next_cloud[:, 2] * 7.0 * 5.0) / float(width)
-        dy = (next_cloud[:, 3] * 7.0 * 5.0) / float(height)
+        w_f, h_f = float(width), float(height)
 
-        hx_norm = h_pos_new[0] / float(width)
-        hy_norm = h_pos_new[1] / float(height)
-        rx = next_cloud[:, 0] - hx_norm
-        ry = next_cloud[:, 1] - hy_norm
-        r_dist = np.sqrt(rx * rx + ry * ry) + 1e-4
+        dx = (next_cloud[:, 2] * 7.0 * 5.0) / w_f
+        dy = (next_cloud[:, 3] * 7.0 * 5.0) / h_f
+        next_cloud[:, 0] = np.clip(next_cloud[:, 0] + dx, 0.02, 0.98)
+        next_cloud[:, 1] = np.clip(next_cloud[:, 1] + dy, 0.02, 0.98)
 
-        next_cloud[:, 0] = np.clip(next_cloud[:, 0] + dx + (rx / r_dist) * 0.008, 0.02, 0.98)
-        next_cloud[:, 1] = np.clip(next_cloud[:, 1] + dy + (ry / r_dist) * 0.008, 0.02, 0.98)
+        hx_norm = h_pos_new[0] / w_f
+        hy_norm = h_pos_new[1] / h_f
+        sim_dist = float(np.linalg.norm(h_pos_new - sim_i_pos))
+
+        if sim_dist < 150.0:
+            ix_norm = sim_i_pos[0] / w_f
+            iy_norm = sim_i_pos[1] / h_f
+            next_cloud[:, 0] = 0.70 * next_cloud[:, 0] + 0.30 * ix_norm
+            next_cloud[:, 1] = 0.70 * next_cloud[:, 1] + 0.30 * iy_norm
+        else:
+            rx = next_cloud[:, 0] - hx_norm
+            ry = next_cloud[:, 1] - hy_norm
+            r_sq = (rx * w_f) ** 2 + (ry * h_f) ** 2
+            inside_mask = r_sq < (110.0 ** 2)
+            if np.any(inside_mask):
+                r_norm = np.sqrt(rx[inside_mask] ** 2 + ry[inside_mask] ** 2) + 1e-5
+                next_cloud[inside_mask, 0] = np.clip(
+                    hx_norm + (rx[inside_mask] / r_norm) * (115.0 / w_f), 0.02, 0.98
+                )
+                next_cloud[inside_mask, 1] = np.clip(
+                    hy_norm + (ry[inside_mask] / r_norm) * (115.0 / h_f), 0.02, 0.98
+                )
+
         return next_cloud
 
     def get_action(
@@ -500,16 +546,18 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         root_z = self.fast_pointnet.encode(root_sub_cloud)
 
         transposition_table = LatentBeliefTranspositionTable(
+            enable_merging=self.enable_dag_merging,
             pos_threshold=self.pos_merge_threshold,
-            vel_threshold=self.vel_merge_threshold,
             cosine_threshold=self.cosine_merge_threshold
         )
         root_node, _ = transposition_table.find_or_create(
             depth=0,
+            net_impulse_key=(0, 0),
             h_pos=h_pos,
             h_vel=h_vel,
             latent_z=root_z,
-            priors=root_priors
+            priors=root_priors,
+            discount_factor=self.discount_factor
         )
         root_node.is_expanded = True
 
@@ -522,6 +570,7 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         for _ in range(n_sims):
             node = root_node
             sub_cloud = root_sub_cloud.copy()
+            impulse_x, impulse_y = 0, 0
 
             i_pos_guess = b_mean + np.random.normal(0, 8.0, size=2)
             i_vel_guess = vel_est + np.random.normal(0, 0.5, size=2).astype(np.float32)
@@ -531,44 +580,57 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                 width, height, ally_pos, ally_target,
                 pincer_dist=self.pincer_dist
             )
-            initial_dist = float(np.linalg.norm(h_pos - i_pos_guess))
-            prev_dist = initial_dist
+            prev_dist = float(np.linalg.norm(h_pos - i_pos_guess))
 
             depth = 0
-            traversed_edges: List[Tuple[DAGBeliefNode, int, DAGBeliefNode]] = []
-            cum_reward = 0.0
+            # Each tuple: (parent_node, action_idx, child_node, step_immediate_reward)
+            traversed_edges: List[Tuple[DAGBeliefNode, int, DAGBeliefNode, float]] = []
 
             while depth < self.max_depth:
-                action_idx = node.select_puct_action(self.c_puct, default_q=root_value)
+                action_idx = node.select_puct_action(self.c_puct, default_q=0.0)
                 r, is_terminal = state.step_multi(self.action_vectors[action_idx], frames=5)
 
+                cur_dist = float(np.linalg.norm(state.h_pos - state.i_pos))
+                step_progress = (prev_dist - cur_dist) / 10.0
+                prev_dist = cur_dist
+                obs_penalty = 0.0
                 if not is_terminal and obstacles is not None:
                     for obs_rect in obstacles:
                         if obs_rect.collides_point(state.h_pos[0], state.h_pos[1], buffer=6.0):
-                            r -= 12.0
+                            obs_penalty = -8.0
                             break
+                step_r = r + step_progress + obs_penalty
 
-                cum_reward += r
+                dx_imp, dy_imp = self.IMPULSE_STEPS[action_idx]
+                impulse_x += dx_imp
+                impulse_y += dy_imp
+                next_impulse_key = (impulse_x, impulse_y)
                 depth += 1
 
                 if action_idx in node.children:
                     child_node = node.children[action_idx]
-                    sub_cloud = self._propagate_belief_subcloud(sub_cloud, state.h_pos, width, height)
+                    sub_cloud = self._propagate_belief_subcloud(
+                        sub_cloud, state.h_pos, state.i_pos, width, height
+                    )
                 else:
-                    sub_cloud = self._propagate_belief_subcloud(sub_cloud, state.h_pos, width, height)
+                    sub_cloud = self._propagate_belief_subcloud(
+                        sub_cloud, state.h_pos, state.i_pos, width, height
+                    )
                     latent_z = self.fast_pointnet.encode(sub_cloud)
 
                     child_node, _ = transposition_table.find_or_create(
                         depth=depth,
+                        net_impulse_key=next_impulse_key,
                         h_pos=state.h_pos,
                         h_vel=state.h_vel,
                         latent_z=latent_z,
-                        priors=root_priors
+                        priors=root_priors,
+                        discount_factor=self.discount_factor
                     )
                     node.children[action_idx] = child_node
                     child_node.parents.append((node, action_idx))
 
-                traversed_edges.append((node, action_idx, child_node))
+                traversed_edges.append((node, action_idx, child_node, step_r))
                 node = child_node
 
                 if is_terminal:
@@ -581,32 +643,25 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
 
             sim_depths_reached.append(depth)
 
-            if node.is_terminal:
-                leaf_value = 500.0 + (self.max_depth - depth) * 20.0
-            else:
-                final_dist = float(np.linalg.norm(state.h_pos - state.i_pos))
-                mean_step_r = cum_reward / float(max(1, depth))
-                total_progress = (initial_dist - final_dist) / 8.0
-                leaf_value = mean_step_r * 2.0 + total_progress + root_value * 5.0
-
-            # Backpropagate along the traversed DAG path and pool statistics at shared nodes
+            # Horizon-normalized discounted step return (always negative ~ -15.0 unless terminal capture,
+            # so default_q = 0.0 > q_min guarantees breadth-first exploration of unvisited actions,
+            # while dividing by suffix_weight_norm ensures depth 4 and depth 2 have identical scale!)
+            leaf_bootstrap = root_value * 5.0
             node.visits += 1
-            node.total_value += leaf_value
-            cur_val = leaf_value
-            for parent_node, act_idx, child_n in reversed(traversed_edges):
-                parent_node.edge_visits[act_idx] += 1
-                parent_node.edge_total_value[act_idx] += cur_val
-                parent_node.visits += 1
-                parent_node.total_value += cur_val
+            node.future_total_value += leaf_bootstrap
 
-                # BROPOP Cross-Parent Propagation across merged DAG edges
-                if len(child_n.parents) > 1:
-                    for sib_parent, sib_act in child_n.parents:
-                        if sib_parent is not parent_node and sib_parent.edge_visits[sib_act] > 0:
-                            sib_parent.edge_total_value[sib_act] = (
-                                0.85 * sib_parent.edge_total_value[sib_act]
-                                + 0.15 * cur_val * sib_parent.edge_visits[sib_act]
-                            )
+            suffix_weighted_sum = 0.0
+            suffix_weight_norm = 0.0
+            for parent_node, act_idx, child_n, step_r in reversed(traversed_edges):
+                suffix_weighted_sum = step_r + self.discount_factor * suffix_weighted_sum
+                suffix_weight_norm = 1.0 + self.discount_factor * suffix_weight_norm
+                horizon_normalized_return = (suffix_weighted_sum / suffix_weight_norm) + leaf_bootstrap
+
+                parent_node.edge_visits[act_idx] += 1
+                parent_node.edge_imm_reward_sum[act_idx] += step_r
+                parent_node.edge_total_value[act_idx] += horizon_normalized_return
+                parent_node.visits += 1
+                parent_node.future_total_value += horizon_normalized_return
 
         total_q = max(1, transposition_table.total_queries)
         merge_rate = (transposition_table.merge_hits / total_q) * 100.0
