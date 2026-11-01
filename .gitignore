@@ -2,8 +2,15 @@
 # Git Ignore for Deep-POMCP (B.Tech Capstone Project)
 # =============================================================================
 
-# Unrelated Coursework (Clean Reference Free Denoising)
+# Unrelated Coursework (Clean Reference Free Denoising & Shift Algebra)
 AI for text , image and video processing/
+Shift_Algebra_Paper/
+DATASET_LINKS.txt
+Page2_Planned_Experiment.tex
+Problem_Statement_and_Literature_Review.tex
+Two_Page_Proposal.tex
+project/intention-sharing-orbital/
+project/workspace-01a106db-73d2-71cf-8f7f-b3ad051ea41a/
 
 # Python & Environment
 __pycache__/

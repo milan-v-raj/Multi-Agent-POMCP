@@ -1,0 +1,5 @@
+policy,episode,seed,captured,steps,switch_triggered,gate_breached
+Greedy A*,1,7000,False,1200,False,False
+Primitive POMCP,1,7000,False,1200,False,False
+Mac-POMCP (Ours),1,7000,False,1200,False,False
+Deep Mac-POMCP (Frozen NN),1,7000,False,1200,False,False

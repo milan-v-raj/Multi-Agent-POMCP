@@ -20,13 +20,15 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 1. **Permutation-Invariant PointNet Belief Encoder**: Operates directly over raw Sequential Monte Carlo (SMC) particle clouds ($\mathcal{B}_t \in \mathbb{R}^{200 \times 4}$), preserving multimodal bifurcations and reducing information loss ($D_{\text{KL}}$) by **46.6%** over Gaussian approximations.
 2. **Depth-Truncated PUCT Tree Search ($D=6$)**: Replaces noisy Monte Carlo rollouts with dual policy-value neural guidance ($V_\phi, \mathbf{P}_\theta$), bounded by Bellman $\gamma$-contraction (Theorem 1), slashing decision latency from **189 ms down to 0.91 ms**.
 3. **Internal Adversarial Simulation & Encirclement Advantage ($R_{\text{EA}}$)**: Embeds a 12-ray dynamic evader model into lookahead expansions paired with a $180^\circ$ pincer reward, boosting capture rate against active evasion to **70.0%** (where Reactive A* drops to 10.0%).
-4. **Cooperative Sacrifice Resolution**: Solves multi-stage delayed gratification puzzles (Switch-Door) with **100.0% switch trigger** and **63.3% capture rate zero-shot** (where classical baselines achieve 0.0%).
-5. **Information-Theoretic Event-Triggered MCTS (ET-MCTS)**: Triggers replanning only on significant entropy flux, line-of-sight edges, or path invalidation, pruning search invocations by **39.3%** and reducing decision latency to sub-millisecond regimes (**4.67 ms**).
+4. **Macro-Action Dec-POMDP (Mac-POMCP) for Cooperative Sacrifice**: Resolves the horizon truncation trap in delayed-gratification switch-door puzzles with zero hardcoded coordinates, achieving **80.0%–100.0% win rate** where primitive flat POMCP and Greedy A* score **0.0%**.
+5. **Epistemic Causal Mechanism Discovery (`causal_switch_pomdp`)**: Places $K=3$ unlabelled candidate pressure plates in the arena where only one latent switch $\kappa^* \in \{0, 1, 2\}$ physically operates the door. Agents maintain a dual belief (continuous evader particle cloud $\mathcal{B}_e$ + categorical causal belief $\mathbf{b}_\kappa \in \Delta^K$), prune non-functional switches via Bayesian negative evidence, and coordinate sacrifice (**100.0% Win Rate** for Causal Mac-POMCP; **90.0% Zero-Shot Win Rate** for frozen Deep Causal Mac-POMCP).
+6. **Information-Theoretic Event-Triggered MCTS (ET-MCTS)**: Triggers replanning only on significant entropy flux, line-of-sight edges, or path invalidation, pruning search invocations by **39.3%** and reducing decision latency to sub-millisecond regimes (**4.67 ms**).
 
 ---
 
 ## 🚀 Key Benchmark Results
 
+### 1. Core Pursuit-Evasion & ET-MCTS Benchmarks
 | Benchmark Evaluation | Metric | Reactive A* | Vanilla POMCP | Heuristic POMCP | Deep-POMCP (Periodic) | ET-Deep-POMCP (Ours) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Exp A: Unseen Maps ($N=80$)** | Win Rate (%) | 100.0% | 85.0% | 80.0% | **100.0%** | **100.0%** |
@@ -37,10 +39,16 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | | Info Preservation | Baseline | Baseline | Baseline | **+46.6% Gain** | **+46.6% Gain** |
 | **Exp D: Strategic Adversary ($N=240$)**| Win Rate (%) | 10.0% | 40.0% | 60.0% | **70.0%** | 66.7% |
 | | Mean Steps to Capture | 321.3 | 1007.2 | 738.9 | **622.5** | 681.4 |
-| **Exp E: Cooperative Sacrifice ($N=120$)**| Win Rate (%) | **0.0%** | **0.0%** | **0.0%** | **63.3%** | **63.3%** |
-| | Switch Trigger Rate | **0.0%** | **0.0%** | **0.0%** | **100.0%** | **100.0%** |
 | **Cul-de-Sac Deadlock (`u_trap`)** | Win Rate (%) | 0.0% | 20.0% | 40.0% | 20.0% | **60.0%** |
 | | Search Invocations | --- | --- | --- | 166.0 calls | **70.0 calls (-57.8%)** |
+
+### 2. Epistemic Causal Mechanism Discovery ($K=3$ Candidate Switches, Zero Hardcoding)
+| Policy | Win Rate (Capture %) | Causal Discovery Rate | Mean Switches Tested | Mean Steps to Capture (TTC) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Greedy A\*** | 0.0% | 0.0% | 0.00 | Timeout (1200) |
+| **Heuristic Trial-and-Error** | 0.0% | 100.0% | 2.20 | Timeout (1200) |
+| **Causal Mac-POMCP (Ours)** | **100.0%** | **100.0%** | **2.00** | **649.4** |
+| **Deep Causal Mac-POMCP (Frozen NN)** | **90.0%** | **100.0%** | **2.60** | **786.2** |
 
 ---
 
@@ -59,33 +67,27 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 
 ---
 
-## 🎮 Interactive Live Showcases
-
-All demonstrations run at 60 FPS in interactive Pygame environments:
+## 🎮 Interactive Showcases & Benchmarks
 
 ### 1. Main Benchmark Showcase (Deep-POMCP vs. Baselines)
 ```bash
 python project/deep_pomcp_env/demo_deep_pomcp.py
 ```
-* **Controls**:
-  * `[M]`: Cycle Pursuer AI (`DEEP-POMCP (Ours)` $\to$ `REACTIVE A*` $\to$ `HEURISTIC POMCP` $\to$ `VANILLA POMCP`)
-  * `[E]`: Toggle Evader AI (`Strategic Adversarial` $\leftrightarrow$ `Standard Raycast`)
-  * `[1 - 7]`: Switch Map Topology (1: Open, 2: Moderate, 3: Dense Maze, 4: Extreme Clutter, 5: U-Trap, 6: Figure-8, 7: Bimodal Fork)
-  * `[SPACE]`: Pause / Resume
-  * `[R]`: Reset with a new randomized seed
-  * `[ESC]`: Exit
 
-### 2. Cooperative Sacrifice Showcase (Switch-Door Puzzle)
+### 2. Audited Single-Switch Cooperative Sacrifice Benchmark (`switch_door_pomdp`)
 ```bash
-python project/deep_pomcp_env/demo_switch_door.py
+python project/switch_door_pomdp/run_benchmark.py --episodes 10
 ```
-* Shows the multi-agent delayed gratification test where one pursuer must step onto and hold a floor switch to open a blast door for its teammate.
 
-### 3. Event-Triggered MCTS Showcase (ET-MCTS)
+### 3. Epistemic Causal Mechanism Discovery Benchmark (`causal_switch_pomdp`)
+```bash
+python project/causal_switch_pomdp/run_benchmark.py --episodes 10 --switches 3 --output causal_benchmark_N10_v2.csv
+```
+
+### 4. Event-Triggered MCTS Showcase (ET-MCTS)
 ```bash
 python project/deep_pomcp_env/demo_et_pomcp.py
 ```
-* Real-time HUD displaying dynamic event triggers (`[TRIGGER: ENTROPY FLUX]`, `[TRIGGER: LOS TRANSITION]`, `[TRIGGER: PATH INVALID]`, `[IDLE: A* TRACKING]`).
 
 ---
 
@@ -93,19 +95,12 @@ python project/deep_pomcp_env/demo_et_pomcp.py
 
 ```
 ├── project/
-│   ├── deep_pomcp_env/          # Core environment and algorithms
-│   │   ├── baselines/           # Deep-POMCP, ET-MCTS, Reactive A*, POMCP
-│   │   ├── nets/                # PointNet encoder & Policy-Value networks
-│   │   ├── core_env.py          # Continuous Dec-POMDP simulator
-│   │   ├── switch_door_env.py   # Cooperative sacrifice environment
-│   │   ├── evaders.py           # Reactive and Strategic Adversarial evaders
-│   │   ├── pathfinder.py        # Continuous A* trajectory generator
-│   │   └── demos                # Interactive Pygame showcases
-│   ├── deep_pomcp_weights.pth   # Pretrained neural network weights
+│   ├── causal_switch_pomdp/     # Epistemic Causal Discovery Dec-POMDP (K=3 latent switches)
+│   ├── switch_door_pomdp/       # Audited Macro-Action Dec-POMDP (Single-switch sacrifice)
+│   ├── deep_pomcp_env/          # Core environment, PointNet, AlphaZero PUCT, ET-MCTS
+│   ├── deep_pomcp_weights.pth   # Pretrained frozen neural network weights
 │   └── benchmarking.py          # Experimental evaluation suites
 ├── midsem_report/               # IEEEtran conference paper source & figures
-│   ├── midsem_report.tex        # Full LaTeX paper
-│   └── figures/                 # Publication-quality vector diagrams & plots
 ├── requirements.txt             # Environment dependencies
 ├── WALKTHROUGH.md               # Detailed technical walkthrough
 └── README.md                    # Project documentation

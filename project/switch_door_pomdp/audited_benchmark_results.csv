@@ -1,0 +1,41 @@
+policy,episode,seed,captured,steps,switch_triggered,gate_breached
+Greedy A*,1,7000,False,1200,False,False
+Greedy A*,2,7015,False,1200,False,False
+Greedy A*,3,7030,False,1200,False,False
+Greedy A*,4,7045,False,1200,False,False
+Greedy A*,5,7060,False,1200,False,False
+Greedy A*,6,7075,False,1200,False,False
+Greedy A*,7,7090,False,1200,False,False
+Greedy A*,8,7105,False,1200,False,False
+Greedy A*,9,7120,False,1200,False,False
+Greedy A*,10,7135,False,1200,False,False
+Primitive POMCP,1,7000,False,1200,False,False
+Primitive POMCP,2,7015,False,1200,False,False
+Primitive POMCP,3,7030,False,1200,False,False
+Primitive POMCP,4,7045,False,1200,False,False
+Primitive POMCP,5,7060,False,1200,False,False
+Primitive POMCP,6,7075,False,1200,False,False
+Primitive POMCP,7,7090,False,1200,False,False
+Primitive POMCP,8,7105,False,1200,False,False
+Primitive POMCP,9,7120,False,1200,False,False
+Primitive POMCP,10,7135,False,1200,False,False
+Mac-POMCP (Ours),1,7000,True,1149,True,True
+Mac-POMCP (Ours),2,7015,False,1200,True,False
+Mac-POMCP (Ours),3,7030,True,417,True,True
+Mac-POMCP (Ours),4,7045,True,420,True,True
+Mac-POMCP (Ours),5,7060,True,362,True,True
+Mac-POMCP (Ours),6,7075,True,258,True,True
+Mac-POMCP (Ours),7,7090,True,540,True,True
+Mac-POMCP (Ours),8,7105,False,1200,True,True
+Mac-POMCP (Ours),9,7120,True,365,True,True
+Mac-POMCP (Ours),10,7135,True,568,True,True
+Deep Mac-POMCP (Frozen NN),1,7000,False,1200,True,True
+Deep Mac-POMCP (Frozen NN),2,7015,False,1200,True,False
+Deep Mac-POMCP (Frozen NN),3,7030,True,767,True,True
+Deep Mac-POMCP (Frozen NN),4,7045,True,267,True,True
+Deep Mac-POMCP (Frozen NN),5,7060,True,327,True,True
+Deep Mac-POMCP (Frozen NN),6,7075,True,258,True,True
+Deep Mac-POMCP (Frozen NN),7,7090,True,656,True,True
+Deep Mac-POMCP (Frozen NN),8,7105,False,1200,True,True
+Deep Mac-POMCP (Frozen NN),9,7120,True,365,True,True
+Deep Mac-POMCP (Frozen NN),10,7135,True,573,True,True

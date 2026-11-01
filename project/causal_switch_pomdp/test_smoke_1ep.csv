@@ -1,0 +1,5 @@
+policy,episode,seed,captured,steps,true_switch_discovered,discovery_step,switches_tested_count,gate_breached
+Greedy A*,1,8000,False,1200,False,-1,0,False
+Heuristic Trial-and-Error,1,8000,False,1200,True,89,3,False
+Causal Mac-POMCP (Ours),1,8000,True,993,True,234,3,True
+Deep Causal Mac-POMCP (Frozen NN),1,8000,False,1200,True,206,3,True

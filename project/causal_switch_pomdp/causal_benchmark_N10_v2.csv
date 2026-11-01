@@ -1,0 +1,41 @@
+policy,episode,seed,captured,steps,true_switch_discovered,discovery_step,switches_tested_count,gate_breached
+Greedy A*,1,8000,False,1200,False,-1,0,False
+Greedy A*,2,8023,False,1200,False,-1,0,False
+Greedy A*,3,8046,False,1200,False,-1,0,False
+Greedy A*,4,8069,False,1200,False,-1,0,False
+Greedy A*,5,8092,False,1200,False,-1,0,False
+Greedy A*,6,8115,False,1200,False,-1,0,False
+Greedy A*,7,8138,False,1200,False,-1,0,False
+Greedy A*,8,8161,False,1200,False,-1,0,False
+Greedy A*,9,8184,False,1200,False,-1,0,False
+Greedy A*,10,8207,False,1200,False,-1,0,False
+Heuristic Trial-and-Error,1,8000,False,1200,True,88,1,False
+Heuristic Trial-and-Error,2,8023,False,1200,True,98,2,True
+Heuristic Trial-and-Error,3,8046,False,1200,True,126,3,True
+Heuristic Trial-and-Error,4,8069,False,1200,True,90,2,True
+Heuristic Trial-and-Error,5,8092,False,1200,True,80,1,True
+Heuristic Trial-and-Error,6,8115,False,1200,True,106,2,True
+Heuristic Trial-and-Error,7,8138,False,1200,True,147,3,True
+Heuristic Trial-and-Error,8,8161,False,1200,True,168,3,True
+Heuristic Trial-and-Error,9,8184,False,1200,True,232,3,True
+Heuristic Trial-and-Error,10,8207,False,1200,True,143,2,True
+Causal Mac-POMCP (Ours),1,8000,True,568,True,187,3,True
+Causal Mac-POMCP (Ours),2,8023,True,698,True,191,2,True
+Causal Mac-POMCP (Ours),3,8046,True,1110,True,131,3,True
+Causal Mac-POMCP (Ours),4,8069,True,373,True,90,2,True
+Causal Mac-POMCP (Ours),5,8092,True,685,True,51,1,True
+Causal Mac-POMCP (Ours),6,8115,True,404,True,74,2,True
+Causal Mac-POMCP (Ours),7,8138,True,439,True,145,3,True
+Causal Mac-POMCP (Ours),8,8161,True,781,True,301,2,True
+Causal Mac-POMCP (Ours),9,8184,True,724,True,282,1,True
+Causal Mac-POMCP (Ours),10,8207,True,712,True,350,1,True
+Deep Causal Mac-POMCP (Frozen NN),1,8000,True,1005,True,187,3,True
+Deep Causal Mac-POMCP (Frozen NN),2,8023,True,668,True,278,2,True
+Deep Causal Mac-POMCP (Frozen NN),3,8046,True,781,True,131,3,True
+Deep Causal Mac-POMCP (Frozen NN),4,8069,True,868,True,90,3,True
+Deep Causal Mac-POMCP (Frozen NN),5,8092,True,489,True,51,2,True
+Deep Causal Mac-POMCP (Frozen NN),6,8115,True,522,True,74,2,True
+Deep Causal Mac-POMCP (Frozen NN),7,8138,True,1091,True,145,3,True
+Deep Causal Mac-POMCP (Frozen NN),8,8161,True,559,True,211,2,True
+Deep Causal Mac-POMCP (Frozen NN),9,8184,True,1093,True,474,3,True
+Deep Causal Mac-POMCP (Frozen NN),10,8207,False,1200,True,293,3,True
