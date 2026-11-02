@@ -1,0 +1,14 @@
+[start] E6 ablations
+  full                 PDR= 77.49% EE=  12.17
+  no_shaping           PDR= 77.49% EE=  12.17
+  no_dos               PDR= 77.34% EE=  12.10
+  argmax_confidence    PDR= 77.49% EE=  12.17
+  argmin_confidence    PDR= 76.81% EE=  12.10
+  no_loop_free         PDR= 70.00% EE=   8.13
+  visited_loop_free    PDR= 55.65% EE=   6.12
+  paper_reward         PDR= 77.49% EE=  12.17
+[done ] E6 ablations  (87.6s)
+[start] E6 head-to-head test battery
+  180 test runs
+[done ] E6 head-to-head test battery  (97.9s)
+figures written

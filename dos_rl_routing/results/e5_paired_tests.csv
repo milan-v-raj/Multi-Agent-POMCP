@@ -1,0 +1,11 @@
+sweep,value,comparison,mean_delta_pp,p_value,effect_size,n
+link_failure,0.2,dos_rl - shortest_path,3.06655,0.078125,0.722222,8
+link_failure,0.4,dos_rl - shortest_path,6.00016,0.0078125,1,8
+node_failure,0.1,dos_rl - shortest_path,0.113366,0.742188,0.166667,8
+node_failure,0.2,dos_rl - shortest_path,0.074145,0.742188,0.166667,8
+node_failure,0.3,dos_rl - shortest_path,0.0937411,0.640625,0.222222,8
+repeated_outages,0,dos_rl - shortest_path,0.281441,0.546875,0.277778,8
+repeated_outages,2,dos_rl - shortest_path,0.640436,0.460938,0.333333,8
+repeated_outages,4,dos_rl - shortest_path,1.01604,0.078125,0.722222,8
+repeated_outages,6,dos_rl - shortest_path,1.54055,0.015625,0.944444,8
+repeated_outages,8,dos_rl - shortest_path,1.48002,0.015625,0.944444,8
