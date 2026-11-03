@@ -1,0 +1,4 @@
+Python 3.11.2 (main, Apr  8 2026, 01:58:00) [GCC 12.2.0]
+NumPy 2.4.6
+SciPy 1.17.1
+Matplotlib 3.11.2

@@ -1,0 +1,4 @@
+# Generated runs and Python cache files
+runs/
+__pycache__/
+*.py[cod]
