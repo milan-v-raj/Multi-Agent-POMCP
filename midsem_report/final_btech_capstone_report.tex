@@ -38,15 +38,30 @@
 
 \begin{document}
 
-\title{Deep-POMCP: Scalable Neural Belief-Space Planning, Latent DAG Merging, and Teleological Intention Sharing for Multi-Agent Pursuit-Evasion Under Continuous Partial Observability and Non-Holonomic Kinematics\\
-\large B.Tech Final Year Capstone Project Report}
+\title{Reinforcement Learning for Multi-Agents with Interaction and Communication\\[4pt]
+\textbf{Deep-POMCP}\\
+\large Neural Belief-Space Planning for Multi-Agent Pursuit-Evasion Under Partial Observability}
 
 \author{
-\IEEEauthorblockN{Angelia Aju Mathai\IEEEauthorrefmark{1}, Milan V Raj\IEEEauthorrefmark{2}, Naithen Sam\IEEEauthorrefmark{3}, and Anup Aprem\IEEEauthorrefmark{4}}
-\IEEEauthorblockA{Department of Electronics and Communication Engineering \\
-National Institute of Technology Calicut, Kozhikode, Kerala, India 673601 \\
-Email: \IEEEauthorrefmark{1}angelia\_b210857ec@nitc.ac.in, \IEEEauthorrefmark{2}milan\_b210874ec@nitc.ac.in, \\
-\IEEEauthorrefmark{3}naithen\_b210887ec@nitc.ac.in, \IEEEauthorrefmark{4}anup.aprem@nitc.ac.in (Faculty Advisor)}
+\IEEEauthorblockN{Angelia Aju Mathai}
+\IEEEauthorblockA{\textit{Dept. of ECE} \\
+\textit{NIT Calicut}\\
+B230812EC}
+\and
+\IEEEauthorblockN{Milan V Raj}
+\IEEEauthorblockA{\textit{Dept. of ECE} \\
+\textit{NIT Calicut}\\
+B231080EC}
+\and
+\IEEEauthorblockN{Naithen Sam}
+\IEEEauthorblockA{\textit{Dept. of ECE} \\
+\textit{NIT Calicut}\\
+B230070EC}
+\and
+\IEEEauthorblockN{Dr. Anup Aprem}
+\IEEEauthorblockA{\textit{Dept. of ECE} \\
+\textit{NIT Calicut}\\
+Assistant Professor}
 }
 
 \maketitle
@@ -425,19 +440,19 @@ where:
 \centering
 \begin{minipage}[b]{0.32\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{figures/unicycle_mujoco_render_perspective.png}
+    \includegraphics[width=\textwidth]{unicycle_mujoco_render_perspective.png}
     \centerline{\footnotesize (a) 3-DOF Unicycle Chassis Model}
 \end{minipage}
 \hfill
 \begin{minipage}[b]{0.32\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{figures/mujoco_render_dense_maze_perspective.png}
+    \includegraphics[width=\textwidth]{mujoco_render_dense_maze_perspective.png}
     \centerline{\footnotesize (b) Perspective View: \texttt{dense\_maze}}
 \end{minipage}
 \hfill
 \begin{minipage}[b]{0.32\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{figures/mujoco_render_u_trap_overhead.png}
+    \includegraphics[width=\textwidth]{mujoco_render_u_trap_overhead.png}
     \centerline{\footnotesize (c) Overhead Trajectory: \texttt{u\_trap}}
 \end{minipage}
 \caption{\textbf{Google DeepMind MuJoCo Continuous Rigid-Body Physics Simulation}: (a) High-resolution render of the 3-DOF differential-drive robotic unicycle chassis ($m=1.2\text{ kg}$, $I_z=0.015\text{ kg}\cdot\text{m}^2$) equipped with optical raycasting mast and closed-loop PD heading steering; (b) Perspective 3D rendering of the continuous pursuit-evasion arena in the multi-corridor \texttt{dense\_maze} environment showing non-convex barrier geometries; (c) Overhead orthographic trajectory view in the \texttt{u\_trap} cul-de-sac showing smooth non-holonomic turning radii without lateral wheel slip ($|v_{\text{slip}}| < 0.45\text{ mm/s}$) under continuous contact physics.}
@@ -550,7 +565,7 @@ Because $V^*$ is the unique fixed point ($T V^* = V^*$), the second term bounds 
 % =========================================================================
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/belief_graph_mcts_benchmark.png}
+\includegraphics[width=\columnwidth]{belief_graph_mcts_benchmark.png}
 \caption{\textbf{Latent Belief-Graph POMCP (DAG-MCTS) Transposition Benchmark}: Empirical validation of PointNet hash-based state merging. (Top-Left) Transposition merge rate scaling from $10.1\%$ ($N_{\text{sims}}=15$) up to $\mathbf{34.3\%}$ ($N_{\text{sims}}=200$). (Top-Right) Node expansion comparison showing dramatic tree compression. (Bottom-Left) Query latency benchmark confirming PointNet hashing ($\mathbf{4.22\ \mu s/query}$) delivers an $\mathbf{18.6\times}$ speedup over Sinkhorn Optimal Transport EMD ($78.4\ \mu\text{s/query}$). (Bottom-Right) Value error convergence under exact Bellman future-value decomposition.}
 \label{fig:belief_graph_benchmark}
 \end{figure}
@@ -596,7 +611,7 @@ If all event triggers evaluate to False, the agent executes Zero-Order Hold (ZOH
 % =========================================================================
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/adversarial_evader_benchmark.png}
+\includegraphics[width=\columnwidth]{adversarial_evader_benchmark.png}
 \caption{\textbf{Adversarial Smarter Evader Trajectory Analysis \& Level-2 Counter-Deception Evaluation}: (Top-Left) Multi-ray clearance escape vectors computed by the smarter evader; (Top-Right) Evader executing an occluded J-hook feint maneuver into a blind alcove; (Bottom-Left) Unimodal tracking failure (red trajectory overshooting) vs Counter-Deceptive Bimodal Filter interception (blue trajectory); (Bottom-Right) Empirical win rate comparison across 240 episodes demonstrating a $\mathbf{+16.7\%}$ absolute gain ($\mathbf{75.0\%}$ vs $58.3\%$) via Bayesian negative-evidence culling.}
 \label{fig:adversarial_evader_benchmark}
 \end{figure}
@@ -642,7 +657,7 @@ In Partner Agent $j$'s MCTS lookahead ($j \neq i$), simulated states $\mathbf{x}
 % =========================================================================
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/thorough_benchmark_results.png}
+\includegraphics[width=0.95\textwidth]{thorough_benchmark_results.png}
 \caption{\textbf{Comprehensive 160-Episode Empirical Benchmark: Intention Sharing vs. Belief Sharing}: Statistically rigorous evaluation across Dec-POMDP (Pygame 2D), Speed Asymmetry ($\alpha=1.15$), and MuJoCo Continuous Unicycle Physics across 4 challenging topologies (\texttt{u\_trap}, \texttt{dense\_maze}, \texttt{bimodal\_fork}, \texttt{figure\_8}). (Panel 1) Win rate comparison confirming a $\mathbf{+30.0\%}$ boost ($\mathbf{70.0\%}$ vs $40.0\%$) in MuJoCo continuous physics ($p < 0.05$). (Panel 2) Mean Time-to-Capture (TTC) demonstrating a $\mathbf{179.4}$-step acceleration in Dec-POMDP. (Panel 3) Inter-pursuer overlap steps ($<50\text{ px}$) showing complete elimination of corridor crowding in dense mazes. (Panel 4) Terminal flanking angles confirming bracket encirclement ($\approx 80^\circ$).}
 \label{fig:thorough_benchmark}
 \end{figure*}
