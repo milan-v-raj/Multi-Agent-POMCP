@@ -30,9 +30,7 @@
 \renewcommand{\floatpagefraction}{0.75}
 \renewcommand{\dblfloatpagefraction}{0.75}
 
-% Theorem and Lemma Environments
-\newtheorem{theorem}{Theorem}
-\newtheorem{lemma}{Lemma}
+% Definition and Remark Environments (Theorem 1 removed as requested)
 \newtheorem{definition}{Definition}
 \newtheorem{remark}{Remark}
 
@@ -70,7 +68,7 @@ Assistant Professor}
 % ABSTRACT
 % =========================================================================
 \begin{abstract}
-Cooperative multi-agent pursuit-evasion under continuous non-linear kinematics, obstacle occlusions, and agile adversarial evasion represents a canonical Decentralized Partially Observable Markov Decision Process (Dec-POMDP). Conventional model-free Multi-Agent Reinforcement Learning (MARL) methods suffer from severe exploration starvation in cooperative sacrifice tasks and catastrophic belief collapse behind symmetric barriers. Conversely, classical online planners such as Multi-Agent Partially Observable Monte Carlo Planning (POMCP) fail in continuous domains due to exponential rollout trajectory divergence, particle deprivation, and excessive decision latency ($>50\text{ ms}$). This capstone project resolves these foundational challenges through the design, implementation, and empirical validation of \textbf{Deep-POMCP}, an integrated neural belief-space planning framework. Starting from baseline POMCP, our architecture introduces: (1) an AlphaZero-guided dual policy-value network operating over permutation-invariant PointNet Sequential Monte Carlo (SMC) particle clouds, eliminating heuristic rollouts; (2) emergent cooperative sacrifice and epistemic causal mechanism discovery in barricaded switch-door environments; (3) a Latent Belief-Graph Directed Acyclic Graph (DAG) search via PointNet hashing ($18.6\times$ faster than Optimal Transport EMD) that eliminates redundant search branches through exact Bellman future-value decomposition; (4) Periodic Event-Triggered Control (PETC) information gating, pruning redundant MCTS queries by $67.7\%$ and lowering latency to $3.47\text{ ms}$; (5) a Level-2 Counter-Deception bimodal belief filter that falsifies deceptive momentum hypotheses via Bayesian negative-sighting culling against a smarter adversarial evader executing multi-ray clearance seeking and J-hook feints; (6) 3-DOF non-holonomic differential-drive unicycle kinematics ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$, lateral tire slip $< 0.45\text{ mm/s}$) with continuous 3D optical raycasting validated inside Google DeepMind's MuJoCo continuous rigid-body physics engine; and (7) teleological \textbf{Intention Sharing} ($\mathcal{I}_i$) that resolves multi-corridor ``Symmetric Greed'' deadlocks through virtual potential repulsion and orthogonal pincer rewards ($R_{\text{pincer}} \propto \sin^2(\Delta\phi/2)$). Across an audited battery of $160$ episodes, Intention Sharing boosts continuous physics capture win rates from $40.0\%$ to $\mathbf{70.0\%}$ ($+30.0\%$ absolute gain), eliminates corridor crowding in dense mazes by $100\%$, and accelerates capture by $179.4$ steps. Finally, a complete ROS 2 Humble bridge is deployed for physical robotic transfer.
+Cooperative multi-agent pursuit-evasion under continuous non-linear kinematics, obstacle occlusions, and agile adversarial evasion represents a canonical Decentralized Partially Observable Markov Decision Process (Dec-POMDP). Conventional model-free Multi-Agent Reinforcement Learning (MARL) methods suffer from severe exploration starvation in cooperative sacrifice tasks and catastrophic belief collapse behind symmetric barriers. Conversely, classical online planners such as Multi-Agent Partially Observable Monte Carlo Planning (POMCP) struggle in continuous domains due to rollout trajectory divergence, particle deprivation, and search tree proliferation. This capstone project addresses these challenges through the design, implementation, and empirical evaluation of \textbf{Deep-POMCP}, an integrated neural belief-space planning and control framework. Starting from baseline POMCP, our architecture introduces: (1) an AlphaZero-guided dual policy-value network operating over permutation-invariant PointNet Sequential Monte Carlo (SMC) particle clouds, eliminating unguided random rollouts; (2) emergent cooperative sacrifice and epistemic causal mechanism discovery in barricaded switch-door environments; (3) Latent Belief-Graph Directed Acyclic Graph (DAG) search via PointNet hashing ($18.6\times$ faster than Optimal Transport EMD) that merges commutative action branches via exact Bellman future-value decomposition; (4) Periodic Event-Triggered Control (PETC) information gating, reducing redundant MCTS invocations by $36.0\%$ ($1895.0 \to 1213.3$ calls/episode) and maintaining sub-millisecond decision latency ($0.48\text{ ms}$ in 2D simulation, $3.47\text{ ms}$ under full MuJoCo rigid-body dynamics); (5) a bimodal belief filter that tracks nominal momentum versus feint hypotheses to counter deceptive evaders; (6) 3-DOF non-holonomic differential-drive unicycle kinematics ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$, lateral tire slip $< 0.45\text{ mm/s}$) with continuous 3D optical raycasting validated inside Google DeepMind's MuJoCo physics engine; and (7) teleological \textbf{Intention Sharing} ($\mathcal{I}_i$) that mitigates multi-corridor ``Symmetric Greed'' deadlocks through virtual potential repulsion and pincer flanking rewards ($R_{\text{pincer}} \propto \sin^2(\Delta\phi/2)$). Across an audited battery of $160$ episodes, Intention Sharing increases continuous physics capture win rates from $40.0\%$ to $\mathbf{70.0\%}$ ($14/20$ vs $8/20$, $95\%$ Wilson CI $[48.1\%, 85.5\%]$ vs $[21.9\%, 61.3\%]$) and accelerates capture in 2D Dec-POMDPs by $179.4$ steps. Finally, a complete ROS 2 Humble bridge is developed to provide a software-in-the-loop foundation for physical robotic deployment.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -83,23 +81,23 @@ Dec-POMDP, Monte Carlo Tree Search, PointNet, AlphaZero, Non-Holonomic Kinematic
 \section{Introduction}
 \IEEEPARstart{C}{ooperative} multi-agent pursuit-evasion under continuous space and partial observability is fundamental to autonomous border defense, perimeter security, critical infrastructure protection, and aerial drone interception \cite{guibas1999visibility, isler2005randomized, pierson2017intercepting}. In these domains, a team of decentralized mobile robotic pursuers must search for, track, encircle, and capture an agile evader navigating through complex, cluttered environments populated by non-convex obstacles and visual occlusions.
 
-Formally, this problem is framed as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) \cite{oliehoek2016concise, bernstein2002complexity}. Solving Dec-POMDPs is provably NEXP-complete in the worst case \cite{bernstein2002complexity}, and continuous multi-agent domains introduce four severe compounding pathologies:
+Formally, this problem is framed as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) \cite{oliehoek2016concise, bernstein2002complexity}. Solving Dec-POMDPs is provably NEXP-complete in the worst case \cite{bernstein2002complexity}, and continuous multi-agent domains introduce four severe compounding challenges:
 \begin{enumerate}
-    \item \textbf{Epistemic Uncertainty \& Multimodal Belief Splitting}: When the evader breaks line-of-sight (LOS) behind an obstacle, its true state becomes a latent probability distribution that bifurcates across disconnected corridors. Standard Gaussian assumptions $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ collapse multimodal densities onto solid obstacle walls, leading to catastrophic pursuit failures \cite{somani2013despot}.
-    \item \textbf{Rollout Divergence \& Tree Bloat in Classical POMCP}: At the completion of the sixth-semester capstone phase, our baseline system utilized classical Multi-Agent POMCP \cite{silver2010monte}. In continuous state-action spaces with non-convex boundaries, random or heuristic Monte Carlo rollouts diverge exponentially from optimal trajectories. As a result, POMCP requires hundreds of simulations ($N > 500$) per decision step, yielding latencies exceeding $50\text{ ms}$ that violate the hard real-time execution constraints of embedded micro-controllers. Furthermore, because classical MCTS constructs a strict tree, commutative action sequences that arrive at identical physical and epistemic states are expanded into separate duplicate subtrees, inducing severe combinatorial bloat ($\mathcal{O}(|\mathcal{A}|^H)$).
-    \item \textbf{Adversarial Deception by Smarter Evaders}: In non-trivial security scenarios, targets do not execute passive Brownian motion or naive flee heuristics. Instead, an adversarial evader actively seeks occlusion shadows, exploits visibility blind spots, and executes deliberate feints (such as J-hook reversals) that exploit pursuers' forward inertia, leading to cyclic evasion loops.
-    \item \textbf{Symmetric Greed \& The Limits of Belief Sharing}: Even when pursuers maintain a shared posterior belief $\mathcal{B}_t$, communicating epistemic uncertainty alone does not guarantee coordination. Under pure belief sharing, both pursuers independently compute that the same corridor offers the shortest path to the target. Consequently, both robots rush into the exact same chokepoint (\textbf{``Symmetric Greed''}), inducing corridor congestion, mutual collisions, and leaving alternate escape corridors completely unmonitored.
+    \item \textbf{Epistemic Uncertainty \& Multimodal Belief Splitting}: When the evader breaks line-of-sight (LOS) behind an obstacle, its true state becomes a latent probability distribution that bifurcates across disconnected corridors. Standard Gaussian assumptions $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ collapse multimodal densities onto solid obstacle walls, leading to pursuit failures \cite{somani2013despot}.
+    \item \textbf{Rollout Divergence \& Tree Bloat in Classical POMCP}: At the completion of the sixth-semester capstone phase, our baseline system utilized classical Multi-Agent POMCP \cite{silver2010monte}. In continuous state-action spaces with non-convex boundaries, random or heuristic Monte Carlo rollouts diverge from optimal trajectories. Furthermore, because classical MCTS constructs a strict tree, commutative action sequences that arrive at identical physical and epistemic states are expanded into separate duplicate subtrees, inducing combinatorial bloat ($\mathcal{O}(|\mathcal{A}|^H)$).
+    \item \textbf{Adversarial Deception by Agile Evaders}: In tactical security scenarios, targets do not execute passive Brownian motion or naive flee heuristics. Instead, an adversarial evader actively seeks occlusion shadows, exploits visibility blind spots, and executes deliberate feints (such as J-hook reversals) that exploit pursuers' forward inertia, leading to cyclic evasion loops \cite{aleksandrov2021pursuit}.
+    \item \textbf{Symmetric Greed \& The Limits of Belief Sharing}: Even when pursuers maintain a shared posterior belief $\mathcal{B}_t$, communicating epistemic uncertainty alone does not guarantee coordination. Under pure belief sharing, both pursuers independently compute that the same corridor offers the shortest path to the target. Consequently, both robots rush into the exact same chokepoint (\textbf{``Symmetric Greed''}), inducing corridor congestion and leaving alternate escape corridors unmonitored \cite{foerster2016learning, macalpine2018customized}.
 \end{enumerate}
 
-To definitively resolve these limitations across the complete project lifecycle, this report details the progression from baseline POMCP to \textbf{Deep-POMCP} and its successive mathematical, algorithmic, and physical advancements:
+To address these limitations across the complete project lifecycle, this report details the progression from baseline POMCP to \textbf{Deep-POMCP} and its successive mathematical, algorithmic, and physical advancements:
 \begin{itemize}
-    \item \textbf{AlphaZero-Guided Neural Belief Planning}: We replace expensive, unguided Monte Carlo rollouts with an AlphaZero-style dual policy-value network $(\mathbf{P}_\theta, V_\phi)$ operating on permutation-invariant PointNet Sequential Monte Carlo (SMC) particle clouds \cite{qi2017pointnet, silver2017mastering}.
-    \item \textbf{Cooperative Sacrifice \& Causal Discovery}: We establish emergent delayed gratification where an agent sacrifices greedy pursuit to hold open barricaded switches, and introduce causal epistemic actions to discover unknown wiring topologies without an environment model.
-    \item \textbf{Latent Belief-Graph POMCP (DAG-MCTS)}: We compress exponential tree search into a Directed Acyclic Graph (DAG) using a 128-D PointNet latent belief hash ($18.6\times$ faster than Sinkhorn Optimal Transport EMD), decomposing Bellman returns to prevent prefix-reward contamination.
-    \item \textbf{Periodic Event-Triggered Control (PETC)}: We design an information-theoretic gating engine that evaluates search triggers upon entropy flux, LOS edges, or bearing drift, reducing MCTS calls by $67.7\%$ and lowering latency to $3.47\text{ ms}$.
-    \item \textbf{Smarter Evader \& Level-2 Counter-Deception}: We formulate a bimodal belief filter with Bayesian negative-sighting culling that anticipates and outmaneuvers deceptive J-hook feints with zero ground-truth leakage.
-    \item \textbf{Google DeepMind MuJoCo Continuous Physics}: We migrate the simulator from discrete 2D gridworlds into Google DeepMind's MuJoCo continuous rigid-body engine, incorporating 3-DOF non-holonomic unicycle kinematics ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$, lateral tire slip $< 0.45\text{ mm/s}$) and optical raycasting.
-    \item \textbf{Teleological Intention Sharing}: We introduce an inter-pursuer intention bus broadcasting committed macro waypoints $\mathbf{w}_i^*$ paired with an MCTS pincer bonus ($R_{\text{pincer}} \propto \sin^2(\Delta\phi/2)$), verified across 160 audited episodes to boost continuous physics capture rates from $40.0\%$ to $\mathbf{70.0\%}$ ($+30.0\%$).
+    \item \textbf{AlphaZero-Guided Neural Belief Planning}: We replace unguided Monte Carlo rollouts with an AlphaZero-style dual policy-value network $(\mathbf{P}_\theta, V_\phi)$ operating on permutation-invariant PointNet Sequential Monte Carlo (SMC) particle clouds \cite{qi2017pointnet, silver2017mastering, grover2018learning}.
+    \item \textbf{Cooperative Sacrifice \& Causal Discovery}: We investigate emergent delayed gratification where an agent sacrifices greedy pursuit to hold open barricaded switches, and introduce causal epistemic actions to discover unknown wiring topologies without an environment model.
+    \item \textbf{Latent Belief-Graph POMCP (DAG-MCTS)}: We compress tree search into a Directed Acyclic Graph (DAG) using a 128-D PointNet latent belief hash ($18.6\times$ faster than Sinkhorn Optimal Transport EMD), decomposing Bellman returns to prevent prefix-reward contamination.
+    \item \textbf{Periodic Event-Triggered Control (PETC)}: We design an information-theoretic gating engine evaluating search triggers upon spatial dispersion flux, LOS edges, or bearing drift, reducing MCTS invocations by $36.0\%$ and maintaining $0.48\text{ ms}$ planning latency.
+    \item \textbf{Smarter Evader \& Level-2 Counter-Deception}: We formulate a bimodal belief filter that tracks nominal momentum versus feint hypotheses, culling invalid branches when clear visual line-of-sight reveals empty space.
+    \item \textbf{Google DeepMind MuJoCo Continuous Physics}: We migrate the simulation from discrete gridworlds into Google DeepMind's MuJoCo continuous rigid-body engine, incorporating 3-DOF non-holonomic unicycle kinematics ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$, lateral tire slip $< 0.45\text{ mm/s}$) and optical raycasting.
+    \item \textbf{Teleological Intention Sharing}: We introduce an inter-pursuer intention bus broadcasting committed macro waypoints $\mathbf{w}_i^*$ paired with an MCTS pincer bonus ($R_{\text{pincer}} \propto \sin^2(\Delta\phi/2)$), verified across 160 audited episodes to boost continuous physics capture rates from $40.0\%$ to $\mathbf{70.0\%}$ ($14/20$ vs $8/20$, Wilson CI $[48.1\%, 85.5\%]$).
 \end{itemize}
 
 % =========================================================================
@@ -272,9 +270,9 @@ To definitively resolve these limitations across the complete project lifecycle,
 
 \node[kinbox] (kin) at (0.0, 4.3) {
     \textbf{\small Kinematics Encoder}\\[2pt]
-    \scriptsize State $[\mathbf{p}_i, \mathbf{v}_i, \mathbf{p}_j, \mathbf{v}_j] \in \mathbb{R}^8$\\[1pt]
-    \scriptsize Non-Holonomic Headings $\theta_i, \theta_j$\\[1pt]
-    \scriptsize $\text{Linear}(8 \to 32) \to \text{ReLU}$\\[2pt]
+    \scriptsize State $[\mathbf{p}_i, \mathbf{v}_i, \theta_i, \mathbf{p}_j, \mathbf{v}_j, \theta_j] \in \mathbb{R}^{10}$\\[1pt]
+    \scriptsize Non-Holonomic Headings \& Velocities\\[1pt]
+    \scriptsize $\text{Linear}(10 \to 32) \to \text{ReLU}$\\[2pt]
     \scriptsize $\implies \mathbf{z}_{\text{kin}} \in \mathbb{R}^{32}$
 };
 
@@ -288,7 +286,7 @@ To definitively resolve these limitations across the complete project lifecycle,
 
 % Routing from Stage I to Stage II (Zero overlaps, clean planar drops)
 \draw[flowarrow] (env.south -| grid.north) -- node[midway, left=2pt, flowlabel] {$11 \times 11$ Grid} (grid.north);
-\draw[flowarrow] ($(env.south) + (2.5, 0)$) -- ++(0, -0.8) -| node[above=2pt, pos=0.35, flowlabel] {Kinematics $[\mathbf{p}, \mathbf{v}]$} (kin.north);
+\draw[flowarrow] ($(env.south) + (2.5, 0)$) -- ++(0, -0.8) -| node[above=2pt, pos=0.35, flowlabel] {Kinematics $[\mathbf{p}, \mathbf{v}, \theta]$} (kin.north);
 \draw[flowarrow] (pf.south -| pointnet.north) -- node[midway, right=2pt, flowlabel] {Particles $\mathcal{B}_t \in \mathbb{R}^{200 \times 4}$} (pointnet.north);
 
 % =========================================================================
@@ -332,7 +330,7 @@ To definitively resolve these limitations across the complete project lifecycle,
     \scriptsize $\bullet$ \textbf{PUCT Selection}: $a^* = \arg\max_a \big[ Q_{\text{DAG}}(s, a) + c_{\text{puct}} \mathbf{P}_\theta(s, a) \frac{\sqrt{\sum N}}{1 + N(s, a)} \big]$\\[1pt]
     \scriptsize $\bullet$ \textbf{PointNet Hashing}: Merges branches if $(I_x, I_y), \Delta\mathbf{p} \le 16\text{ px}, 1 - \mathbf{z}_1 \cdot \mathbf{z}_2 \le 0.015$ ($18.6\times$ speedup)\\[1pt]
     \scriptsize $\bullet$ \textbf{Bellman DAG Backup}: $Q_{\text{DAG}} = (1-\lambda) Q_{\text{direct}} + \lambda (R + \gamma V_{\text{pooled}}), \; \lambda=0.30$\\[1pt]
-    \scriptsize $\bullet$ \textbf{PETC Gating}: Replans on $|\Delta\mathcal{S}| > 16\text{ px}$, LOS edge, or bearing drift ($-$67.7\% MCTS calls)\\[1pt]
+    \scriptsize $\bullet$ \textbf{PETC Gating}: Replans on $|\Delta\mathcal{S}| > 16\text{ px}$, LOS edge, or bearing drift ($-$36.0\% MCTS calls)\\[1pt]
     \scriptsize $\bullet$ \textbf{Adversarial Lookahead}: 12-Ray flee anticipation + Pincer Flanking Reward $R_{\text{pincer}}$
 };
 
@@ -383,7 +381,7 @@ To definitively resolve these limitations across the complete project lifecycle,
 
 \end{tikzpicture}%
 }
-\caption{\textbf{Comprehensive End-to-End Architectural Pipeline of Deep-POMCP}: (Stage I) The continuous state is simulated inside Google DeepMind's MuJoCo non-holonomic unicycle physics with 3D optical raycasts (\texttt{mj\_ray}) updating a bimodal SMC particle filter ($M=200$) with Bayesian negative-sighting culling. (Stage II) Three parallel encoders extract local occupancy grids, kinematics, and permutation-invariant belief point clouds (PointNet). (Stage III) A fusion trunk produces unified latent vector $\mathbf{z}_{\text{fuse}} \in \mathbb{R}^{128}$ generating policy priors $\mathbf{P}_\theta$ and value evaluations $V_\phi$. (Stage IV) Periodic Event-Triggered Control (PETC) gates depth-6 Latent Belief-Graph DAG-MCTS expansions via PointNet hash merging, while the Inter-Pursuer Intention Bus communicates committed macro waypoints ($\mathcal{I}_i$) to enforce anti-clustering and orthogonal pincer encirclement.}
+\caption{\textbf{Comprehensive End-to-End Architectural Pipeline of Deep-POMCP}: (Stage I) The continuous state is simulated inside Google DeepMind's MuJoCo non-holonomic unicycle physics with 3D optical raycasts (\texttt{mj\_ray}) updating a bimodal SMC particle filter ($M=200$) with Bayesian negative-sighting culling. (Stage II) Three parallel encoders extract local occupancy grids, kinematics, and permutation-invariant belief point clouds (PointNet). (Stage III) A fusion trunk produces unified latent vector $\mathbf{z}_{\text{fuse}} \in \mathbb{R}^{128}$ generating policy priors $\mathbf{P}_\theta$ and value evaluations $V_\phi$. (Stage IV) Periodic Event-Triggered Control (PETC) gates depth-6 Latent Belief-Graph DAG-MCTS expansions via PointNet hash merging, while the Inter-Pursuer Intention Bus communicates committed macro waypoints ($\mathcal{I}_i$) to enforce anti-clustering and pincer encirclement.}
 \label{fig:architecture}
 \end{figure*}
 
@@ -394,22 +392,22 @@ To definitively resolve these limitations across the complete project lifecycle,
 \subsection{Decentralized POMDPs and Belief-Space Planning}
 Decentralized Partially Observable Markov Decision Processes (Dec-POMDPs) provide the foundational mathematical framework for multi-agent coordination under uncertainty \cite{oliehoek2016concise, bernstein2002complexity}. Classical exact solution methods (e.g., dynamic programming, generalized point-based value iteration) are computationally intractable for real-time systems because policy trees scale super-exponentially with the planning horizon \cite{amato2013decentralized}.
 
-To address scalability, online Monte Carlo Tree Search (MCTS) planners were introduced. Partially Observable Monte Carlo Planning (POMCP) \cite{silver2010monte} breaks the curse of dimensionality by pairing a particle filter with UCT action selection. Determinized Sparse Partially Observable Trees (DESPOT) \cite{somani2013despot} samples a fixed set of execution scenarios to bound rollout divergence. In multi-robot coordination, Dec-MCTS \cite{best2019dec} and Macro-Action POMDPs (Mac-POMDPs) \cite{amato2019planning} formalize macro-level commitments. However, these classical frameworks lack neural function approximation, relying on heuristic or uniform random rollouts that diverge catastrophically in continuous non-convex obstacle environments.
+To address scalability, online Monte Carlo Tree Search (MCTS) planners were introduced. Partially Observable Monte Carlo Planning (POMCP) \cite{silver2010monte} breaks the curse of dimensionality by pairing a particle filter with UCT action selection. Determinized Sparse Partially Observable Trees (DESPOT) \cite{somani2013despot} regularizes online search by determinizing execution scenarios across fixed particle seeds. In multi-robot coordination, Dec-MCTS \cite{best2019dec} and Macro-Action POMDPs (Mac-POMDPs) \cite{amato2019planning} formalize macro-level commitments. However, these classical frameworks lack neural function approximation, relying on heuristic or uniform random rollouts that diverge in continuous obstacle environments.
 
 \subsection{Neural-Guided Tree Search: AlphaZero in Continuous Domains}
-In fully observable discrete domains, AlphaGo and AlphaZero \cite{silver2017mastering, silver2018general} revolutionized search by replacing random rollouts with dual policy-value neural networks trained through self-play. Extensions to partially observable environments, such as Player-of-Games \cite{schmid2023player} and MuZero \cite{schrittwieser2020mastering}, demonstrated superhuman performance in imperfect-information board games. However, transferring AlphaZero architectures into spatial multi-agent robotics requires encoding permutation-invariant particle distributions over continuous spatial manifolds without collapsing higher-order multimodal uncertainties. PointNet \cite{qi2017pointnet} established symmetric max-pooling for unordered point sets; our work leverages PointNet to create a fixed-dimensional continuous belief hash.
+In fully observable discrete domains, AlphaGo and AlphaZero \cite{silver2017mastering, silver2018general} revolutionized search by replacing random rollouts with dual policy-value neural networks trained through self-play. Extensions to partially observable environments, such as Player-of-Games \cite{schmid2023player} and MuZero \cite{schrittwieser2020mastering}, demonstrated strong performance in imperfect-information games. However, transferring AlphaZero architectures into spatial multi-agent robotics requires encoding permutation-invariant particle distributions over continuous spatial manifolds without collapsing multimodal uncertainties. PointNet \cite{qi2017pointnet} established symmetric max-pooling for unordered point sets, and Grover et al. \cite{grover2018learning} demonstrated the utility of learning structured representations for multi-agent interaction. Our work leverages PointNet to create a fixed-dimensional continuous belief representation.
 
 \subsection{Model-Free Reinforcement Learning Limitations}
-Model-free Multi-Agent Reinforcement Learning (MARL) algorithms, including MAPPO \cite{yu2022surprising}, QMIX \cite{rashid2018qmix}, and MADDPG \cite{lowe2017multi}, optimize decentralized policies via centralized training with decentralized execution (CTDE). While computationally efficient during execution, model-free MARL exhibits critical vulnerabilities in long-horizon cooperative sacrifice tasks requiring delayed gratification: without extensive manual reward shaping, temporal-difference credit assignment fails, resulting in a $0.0\%$ empirical success rate \cite{rashid2018qmix}. Furthermore, recurrent neural memories (GRU/LSTM) suffer from posterior mode collapse when navigating symmetric cul-de-sac obstacles.
+Model-free Multi-Agent Reinforcement Learning (MARL) algorithms, including MAPPO \cite{yu2022surprising}, QMIX \cite{rashid2018qmix}, and MADDPG \cite{lowe2017multi}, optimize decentralized policies via centralized training with decentralized execution (CTDE). While computationally fast during execution, model-free MARL exhibits vulnerabilities in long-horizon cooperative sacrifice tasks requiring delayed gratification: without manual reward shaping, temporal-difference credit assignment struggles, resulting in high failure rates on barricaded switch-door tasks \cite{rashid2018qmix}. Furthermore, recurrent neural policies (GRU/LSTM) frequently suffer from belief mode collapse when navigating symmetric cul-de-sac obstacles.
 
 \subsection{Graph-Based MCTS and Transposition DAGs}
-In standard MCTS, trees suffer from severe combinatorial bloat when commutative actions (e.g., moving $[+x, +y]$ vs $[+y, +x]$) reach identical world states. In deterministic board games, transposition tables merge identical states into Directed Acyclic Graphs (DAGs) \cite{kocsis2006bandit, sunehag2017value}. However, extending DAG merging to continuous belief-space POMDPs is profoundly challenging: exact particle matches have measure zero, and naive state hashing ignores posterior belief divergence. Optimal transport methods (such as Sinkhorn Earth Mover's Distance \cite{cuturi2013sinkhorn}) can measure particle distribution distance but require $\approx 78\ \mu\text{s}$ per query, creating an unacceptable bottleneck. Our work resolves this via PointNet latent hashing, achieving an $18.6\times$ speedup.
+In standard MCTS, trees suffer from combinatorial bloat when commutative actions (e.g., moving $[+x, +y]$ vs $[+y, +x]$) reach identical world states. While UCT \cite{kocsis2006bandit} operates on trees, transposition tables in deterministic board games merge identical states into Directed Acyclic Graphs (DAGs) \cite{sunehag2017value}. However, extending DAG merging to continuous belief-space POMDPs is challenging: exact particle matches have measure zero, and naive state hashing ignores posterior belief divergence. Optimal transport methods (such as Sinkhorn Earth Mover's Distance \cite{cuturi2013sinkhorn}) can measure particle distribution distance but require $\approx 78\ \mu\text{s}$ per query, creating a bottleneck for real-time search. Our work resolves this via PointNet latent hashing, achieving an $18.6\times$ speedup.
 
-\subsection{Adversarial Pursuit-Evasion \& Smarter Deceptive Evaders}
-Pursuit-evasion games have a rich theoretical foundation dating to Isaacs' differential games \cite{isaacs1999differential, basar1999dynamic}. Modern algorithmic approaches emphasize visibility-based pursuit \cite{guibas1999visibility}, randomized search \cite{isler2005randomized}, and Voronoi-based encirclement \cite{pierson2017intercepting, zhou2016cooperative}. In tactical adversarial settings, intelligent evaders exploit blind spots using deception and feints \cite{aleksandrov2021pursuit}. Hespanha et al. \cite{hespanha1999probabilistic} and recent opponent modeling literature \cite{he2016opponent} emphasize that pursuit policies must incorporate Level-2 recursive reasoning (modeling the opponent's awareness of the pursuer) to avoid falling into occlusion-based ambush cycles.
+\subsection{Adversarial Pursuit-Evasion \& Inter-Agent Communication}
+Pursuit-evasion games have a rich theoretical foundation dating to Isaacs' differential games \cite{isaacs1999differential, basar1999dynamic}. Modern algorithmic approaches emphasize visibility-based pursuit \cite{guibas1999visibility}, randomized search \cite{isler2005randomized}, and Voronoi-based encirclement \cite{pierson2017intercepting, zhou2016cooperative}. In tactical adversarial settings, intelligent evaders exploit blind spots using deception and feints \cite{aleksandrov2021pursuit}. Hespanha et al. \cite{hespanha1999probabilistic} and opponent modeling literature \cite{he2016opponent} emphasize that pursuit policies must incorporate recursive reasoning to avoid falling into ambush cycles. In multi-agent coordination, Foerster et al. \cite{foerster2016learning} established differentiable communication channels, while MacAlpine and Stone \cite{macalpine2018customized} demonstrated the advantages of explicit intention sharing over raw belief broadcast.
 
 \subsection{Continuous Rigid-Body Simulators \& Non-Holonomic Control}
-Periodic time-division planning is fundamentally inefficient in mobile robotics: computing MCTS every $K$ cycles wastes CPU cycles in open spaces while introducing unacceptable reaction delay at critical visibility boundaries. Event-Triggered Control (ETC) and Periodic Event-Triggered Control (PETC) \cite{tabuada2007event, heemels2012introduction} evaluate replanning conditions dynamically based on state error and Lyapunov stability. In mobile robotics, physical wheeled platforms are governed by non-holonomic Pfaffian velocity constraints ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$) \cite{kolmanovsky1995developments, laumond1998robot}. While most pursuit-evasion literature assumes holonomic point-mass agents in discrete gridworlds, physical deployment requires continuous multi-body contact dynamics and closed-loop non-holonomic unicycle tracking over continuous Coulomb friction manifolds, accurately modeled inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco}.
+Periodic time-division planning is inefficient in mobile robotics: computing MCTS every $K$ cycles wastes CPU cycles in open spaces while introducing reaction delay at visibility boundaries. Event-Triggered Control (ETC) and Periodic Event-Triggered Control (PETC) \cite{tabuada2007event, heemels2012introduction} evaluate replanning conditions dynamically based on state error and sensor events. In mobile robotics, physical wheeled platforms are governed by non-holonomic Pfaffian velocity constraints ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$) \cite{kolmanovsky1995developments, laumond1998robot}. While most pursuit-evasion literature assumes holonomic point-mass agents in discrete gridworlds, physical deployment requires continuous multi-body contact dynamics and closed-loop non-holonomic unicycle tracking over continuous Coulomb friction manifolds, accurately modeled inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco}.
 
 % =========================================================================
 % SECTION III: PROBLEM FORMULATION
@@ -429,7 +427,7 @@ where:
     \item $\mathcal{T}: \mathcal{S} \times \mathcal{A}_1 \times \dots \times \mathcal{A}_N \to \mathcal{P}(\mathcal{S})$ is the Markovian state transition density.
     \item $\mathcal{R}(\mathbf{s}, \mathbf{a}): \mathcal{S} \times \prod_i \mathcal{A}_i \to \mathbb{R}$ is the joint reward function rewarding capture and penalizing wall collisions and mutual inter-pursuer crowding.
     \item $\Omega_i$ is the local observation space for agent $i$.
-    \item $\mathcal{O}: \mathcal{S} \times \prod_i \mathcal{A}_i \to \mathcal{P}(\Omega_1 \times \dots \times \Omega_N)$ is the observation probability distribution.
+    \item $\mathcal{O}: \mathcal{S} \times \prod_i \mathcal{A}_i \to \mathcal{P}(\Omega_1 \times \dots \Omega_N)$ is the observation probability distribution.
     \item $\gamma \in [0, 1)$ is the temporal discount factor ($\gamma = 0.95$).
 \end{itemize}
 
@@ -460,7 +458,7 @@ where:
 \end{figure*}
 
 \subsection{Google DeepMind MuJoCo Simulation \& 3-DOF Non-Holonomic Unicycle Kinematics}
-To eliminate the reality gap inherent in simplistic 2D gridworlds, pursuers and evaders are modeled as physical continuous-space mobile robots inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco} (Fig.~\ref{fig:mujoco_env}). The general equations of motion for multi-body rigid systems subject to kinematic constraints are formulated as:
+To bridge the reality gap of discrete gridworlds, pursuers and evaders are modeled as physical continuous-space mobile robots inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco} (Fig.~\ref{fig:mujoco_env}). The general equations of motion for multi-body rigid systems subject to kinematic constraints are formulated as:
 \begin{equation}
     \mathbf{M}(\mathbf{q}) \ddot{\mathbf{q}} + \mathbf{C}(\mathbf{q}, \dot{\mathbf{q}}) = \mathbf{B}\mathbf{u} + \mathbf{J}_c^T(\mathbf{q}) \boldsymbol{\lambda}
 \end{equation}
@@ -495,15 +493,16 @@ When the evader is visible, observation $\mathbf{y}_t = \mathbf{e}(t) + \boldsym
 followed by low-variance systematic resampling when $N_{\text{eff}} < M/2$. During occlusion, particles propagate forward under bounded stochastic kinematic drift while bouncing off obstacle boundaries $\mathcal{O}$.
 
 \subsection{The Smarter Adversarial Evader Model}
-Rather than following passive random walks or naive potential fields, the evader is equipped with a tactical adversarial evasion engine:
+Rather than following passive random walks or naive potential fields, the evader is modeled with an adversarial evasion policy:
 \begin{enumerate}
-    \item \textbf{16-Ray Optical Visibility Clearance}: The evader casts 16 radial rays across $360^\circ$ at continuous resolution, evaluating ray distance $d_r$ to both static obstacles and pursuing agents. The tactical flee vector balances pursuer repulsion and corridor depth:
+    \item \textbf{16-Ray Optical Visibility Clearance}: The evader casts 16 radial rays across $360^\circ$, evaluating distance $d_r$ to static obstacles and pursuing agents. The dimensionless clearance flee vector is formulated as:
     \begin{equation}
-        \mathbf{v}_{\text{flee}} = \sum_{r=1}^{16} \hat{\mathbf{u}}_r \cdot d_r \cdot \prod_{i=1}^N \max\left(0, 1 - \frac{\text{LOS}_i \cdot \cos\angle(\hat{\mathbf{u}}_r, \mathbf{p}_i - \mathbf{x}_e)}{\|\mathbf{p}_i - \mathbf{x}_e\|}\right)
+        \mathbf{v}_{\text{flee}} = \sum_{r=1}^{16} \hat{\mathbf{u}}_r \cdot d_r \cdot \prod_{i=1}^N \max\left(0, \; 1 - \frac{\text{LOS}_i \cdot \cos\angle(\hat{\mathbf{u}}_r, \mathbf{p}_i - \mathbf{x}_e)}{\max\big(1.0, \, \|\mathbf{p}_i - \mathbf{x}_e\| / R_{\text{vis}}\big)}\right)
     \end{equation}
-    \item \textbf{Active Occlusion Seeking}: The evader receives an intrinsic reward ($+250$) whenever it navigates behind an obstacle corner that drops pursuer line-of-sight to zero, deliberately driving pursuers into high-entropy epistemic blind spots.
-    \item \textbf{Deceptive J-Hook Feint Maneuvers}: Upon breaking line-of-sight, naive targets continue along a straight line. Our smarter evader maintains its entry heading $\mathbf{v}_{\text{entry}}$ for $\tau_{\text{feint}} = 26$ frames to induce forward momentum in the pursuers, and then executes an immediate $135^\circ$--$180^\circ$ snap turn into a blind side alcove, baiting pursuers into overshooting.
-    \item \textbf{Speed Asymmetry Ratios}: The evader's maximum forward velocity is parameterized by $v_{e, \max} = \alpha \cdot v_{p, \max}$, evaluated across symmetric speed ($\alpha=1.0$), moderate advantage ($\alpha=1.15$), and extreme advantage ($\alpha=2.0$).
+    where $R_{\text{vis}} = 250\text{ px}$ normalizes the distance ratio to ensure dimensional consistency.
+    \item \textbf{Active Occlusion Seeking}: The evader receives an intrinsic reward ($+250$) upon transitioning behind an obstacle corner that drops pursuer line-of-sight to zero, deliberately increasing belief entropy.
+    \item \textbf{Deceptive J-Hook Feint Maneuvers}: Upon breaking line-of-sight, naive targets continue along a straight trajectory. In contrast, the smarter evader maintains its entry heading $\mathbf{v}_{\text{entry}}$ for $\tau_{\text{feint}} = 26$ frames to induce forward momentum in the pursuers, and then executes an immediate $135^\circ$--$180^\circ$ snap turn into a blind side alcove, baiting pursuers into overshooting.
+    \item \textbf{Speed Asymmetry Ratios}: The evader's maximum forward velocity is parameterized by $v_{e, \max} = \alpha \cdot v_{p, \max}$, evaluated across symmetric speed ($\alpha=1.0$), moderate advantage ($\alpha=1.15$), and high advantage ($\alpha=2.0$).
 \end{enumerate}
 
 % =========================================================================
@@ -512,53 +511,48 @@ Rather than following passive random walks or naive potential fields, the evader
 \section{Deep-POMCP Methodology}
 
 \subsection{Tri-Stream Feature Encoders \& PointNet}
-Standard POMDP approximations reduce particle clouds to unimodal Gaussian statistics $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, entirely discarding multimodal splits behind symmetric obstacles. Deep-POMCP deploys a tri-stream encoder architecture (Fig.~\ref{fig:architecture}):
+Standard POMDP approximations reduce particle clouds to unimodal Gaussian statistics $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$, discarding multimodal splits behind symmetric obstacles. Deep-POMCP deploys a tri-stream encoder architecture (Fig.~\ref{fig:architecture}):
 \begin{enumerate}
     \item \textbf{Local Occupancy Grid Encoder}: An $11 \times 11$ binary subgrid centered at pursuer $\mathbf{p}_i$ with resolution $\Delta r = 10\text{ px}$ is flattened and encoded via $\text{Linear}(121 \to 64) \to \text{ReLU}$, yielding $\mathbf{z}_{\text{grid}} \in \mathbb{R}^{64}$.
-    \item \textbf{Kinematics Encoder}: Pursuer kinematics $[\mathbf{p}_i, \mathbf{v}_i, \mathbf{p}_j, \mathbf{v}_j] \in \mathbb{R}^8$ are processed via $\text{Linear}(8 \to 32) \to \text{ReLU}$, producing $\mathbf{z}_{\text{kin}} \in \mathbb{R}^{32}$.
+    \item \textbf{Kinematics Encoder}: Pursuer kinematics and orientations $\mathbf{s}_{\text{kin}} = [\mathbf{p}_i, \mathbf{v}_i, \theta_i, \mathbf{p}_j, \mathbf{v}_j, \theta_j] \in \mathbb{R}^{10}$ are processed via $\text{Linear}(10 \to 32) \to \text{ReLU}$, producing $\mathbf{z}_{\text{kin}} \in \mathbb{R}^{32}$.
     \item \textbf{Permutation-Invariant PointNet Belief Encoder}: Each 4D particle hypothesis $\mathbf{x}_t^{(m)} = [e_x, e_y, \dot{e}_x, \dot{e}_y]^T$ is mapped into a 128-dimensional latent space using shared multi-layer perceptrons with Layer Normalization:
     \begin{align}
         \mathbf{h}_1^{(m)} &= \text{ReLU}\big(\text{LayerNorm}(\mathbf{W}_1 \mathbf{x}_t^{(m)} + \mathbf{b}_1)\big) \in \mathbb{R}^{64} \\
         \mathbf{h}_2^{(m)} &= \text{ReLU}\big(\text{LayerNorm}(\mathbf{W}_2 \mathbf{h}_1^{(m)} + \mathbf{b}_2)\big) \in \mathbb{R}^{128} \\
         \mathbf{z}_{\text{belief}} &= \frac{\max_{m=1, \dots, M} \mathbf{h}_2^{(m)}}{\big\|\max_{m=1, \dots, M} \mathbf{h}_2^{(m)}\big\|_2} \in \mathbb{R}^{128}
     \end{align}
-    Symmetric max-pooling across the $M$ particles guarantees that $\mathbf{z}_{\text{belief}}$ is mathematically invariant to particle indexing permutations.
+    Symmetric max-pooling across the $M$ particles guarantees that $\mathbf{z}_{\text{belief}}$ is invariant to particle indexing permutations \cite{qi2017pointnet}.
 \end{enumerate}
 
 The multimodal fusion trunk concatenates all three representations:
 \begin{equation}
-    \mathbf{z}_{\text{fuse}} = \text{ReLU}\big(\mathbf{W}_{\text{fuse}} [\mathbf{z}_{\text{grid}}, \mathbf{z}_{\text{kin}}, \mathbf{z}_{\text{belief}}] + \mathbf{b}_{\text{fuse}}\big) \in \mathbb{R}^{128}
+    \mathbf{z}_{\text{concat}} = [\mathbf{z}_{\text{belief}} \,(128\text{d}) \parallel \mathbf{z}_{\text{grid}} \,(64\text{d}) \parallel \mathbf{z}_{\text{kin}} \,(32\text{d})] \in \mathbb{R}^{224}
 \end{equation}
-which feeds dual output heads:
+which is processed through a two-layer MLP with Layer Normalization:
+\begin{align}
+    \mathbf{h}_{\text{fuse}} &= \text{ReLU}\big(\text{LayerNorm}(\mathbf{W}_{f1} \mathbf{z}_{\text{concat}} + \mathbf{b}_{f1})\big) \in \mathbb{R}^{256} \\
+    \mathbf{z}_{\text{fuse}} &= \text{ReLU}\big(\text{LayerNorm}(\mathbf{W}_{f2} \mathbf{h}_{\text{fuse}} + \mathbf{b}_{f2})\big) \in \mathbb{R}^{128}
+\end{align}
+feeding dual output heads:
 \begin{align}
     \mathbf{P}_\theta(s, a) &= \text{Softmax}(\mathbf{W}_p \mathbf{z}_{\text{fuse}} + \mathbf{b}_p) \in \mathbb{R}^5 \\
     V_\phi(s) &= \tanh(\mathbf{W}_v \mathbf{z}_{\text{fuse}} + b_v) \in [-1, 1]
 \end{align}
 
-\subsection{Depth-Truncated PUCT Tree Search}
-Action selection inside tree search balances exploitation and prior-guided exploration using the Predictor Upper Confidence Bound (PUCT):
+\subsection{Finite-Horizon PUCT Search \& Neural Bootstrapping}
+Action selection inside tree search balances exploitation and prior-guided exploration using the Predictor Upper Confidence Bound (PUCT) \cite{silver2017mastering}:
 \begin{equation}
     a^* = \arg\max_{a} \left[ Q(s, a) + c_{\text{puct}} \mathbf{P}_\theta(s, a) \frac{\sqrt{\sum_b N(s, b)}}{1 + N(s, a)} \right]
     \label{eq:puct}
 \end{equation}
-Tree expansions terminate at maximum horizon $D = 6$. Rather than executing noisy Monte Carlo rollouts to termination, leaf nodes $s_{\text{leaf}}$ are directly evaluated using $V_\phi(s_{\text{leaf}})$.
+In continuous multi-agent domains, full-horizon rollout simulations diverge exponentially from realistic trajectories. Deep-POMCP truncates tree expansions at a finite horizon $D = 6$. Instead of executing noisy random rollouts, leaf nodes $s_{\text{leaf}}$ are directly evaluated using the learned value head $V_\phi(s_{\text{leaf}})$. Truncating at $D=6$ captures local topological interactions (such as corridor turns and door-switch mechanisms within 6 steps) while bounding worst-case search complexity to $\mathcal{O}(|\mathcal{A}|^6)$, enabling sub-millisecond planning latency.
 
-\begin{theorem}[Depth-Cutoff Planning Error Bound]
-Let $\mathcal{M}$ be a continuous discounted Dec-POMDP with discount factor $\gamma \in (0, 1)$ and maximum bounded return $V_{\max} = R_{\max} / (1 - \gamma)$. If the neural value estimator $V_\phi$ satisfies uniform approximation error $\|V_\phi - V^*\|_\infty \le \epsilon$, truncating tree search at depth $D$ and bootstrapping leaf nodes with $V_\phi$ guarantees:
+\subsection{Dual Policy-Value Network Training Protocol}
+The policy-value network parameters $(\theta, \phi)$ are trained using an AlphaZero-style loss combining policy cross-entropy and mean squared value error:
 \begin{equation}
-    \|V_{\text{tree}}^{(D)} - V^*\|_\infty \le \gamma^D V_{\max} + \frac{\epsilon}{1 - \gamma}
+    \mathcal{L}(\theta, \phi) = \big(v - V_\phi(s)\big)^2 - \boldsymbol{\pi}_{\text{MCTS}}^T \log \mathbf{P}_\theta(s, \cdot) + c \|\Theta\|_2^2
 \end{equation}
-\end{theorem}
-\begin{IEEEproof}
-Let $T$ denote the Bellman optimality operator, a $\gamma$-contraction mapping under the infinity norm. Unrolling tree search for $D$ steps yields $V_{\text{tree}}^{(D)} = T^D V_\phi$. By the triangle inequality:
-\begin{align}
-    \|T^D V_\phi - V^*\|_\infty &\le \|T^D V_\phi - T^D V^*\|_\infty + \|T^D V^* - V^*\|_\infty \nonumber \\
-    &\le \gamma^D \|V_\phi - V^*\|_\infty + \sum_{k=0}^{D-1} \gamma^k \|T V^* - V^*\|_\infty
-\end{align}
-Because $V^*$ is the unique fixed point ($T V^* = V^*$), the second term bounds the truncation horizon error by $\gamma^D V_{\max}$. Bounding the propagation of leaf estimation error across the discount horizon yields $\frac{\epsilon}{1 - \gamma}$.
-\end{IEEEproof}
-
-\textit{Significance}: For $\gamma = 0.95$ and depth $D = 6$, $\gamma^6 = 0.735$. This guarantees bounded suboptimality while reducing planning complexity from $\mathcal{O}(|\mathcal{A}|^H)$ to $\mathcal{O}(|\mathcal{A}|^6)$, unlocking sub-millisecond execution.
+where $\boldsymbol{\pi}_{\text{MCTS}}(a) \propto N(\text{root}, a)^{1/\tau}$ is the normalized visit distribution from MCTS lookahead, $v \in [-1, 1]$ is the empirical discounted episode return, and $c = 10^{-4}$ is the $L_2$ weight regularization factor. The network is trained using the Adam optimizer with a learning rate of $10^{-4}$ and mini-batch size of 64 over $50,000$ transitions collected via expert-guided and self-play exploration.
 
 % =========================================================================
 % FIGURE 3: BELIEF GRAPH MCTS BENCHMARK
@@ -566,7 +560,7 @@ Because $V^*$ is the unique fixed point ($T V^* = V^*$), the second term bounds 
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{belief_graph_mcts_benchmark.png}
-\caption{\textbf{Latent Belief-Graph POMCP (DAG-MCTS) Transposition Benchmark}: Empirical validation of PointNet hash-based state merging. (Top-Left) Transposition merge rate scaling from $10.1\%$ ($N_{\text{sims}}=15$) up to $\mathbf{34.3\%}$ ($N_{\text{sims}}=200$). (Top-Right) Node expansion comparison showing dramatic tree compression. (Bottom-Left) Query latency benchmark confirming PointNet hashing ($\mathbf{4.22\ \mu s/query}$) delivers an $\mathbf{18.6\times}$ speedup over Sinkhorn Optimal Transport EMD ($78.4\ \mu\text{s/query}$). (Bottom-Right) Value error convergence under exact Bellman future-value decomposition.}
+\caption{\textbf{Latent Belief-Graph POMCP (DAG-MCTS) Transposition Benchmark}: Empirical validation of PointNet hash-based state merging. (Top-Left) Transposition merge rate scaling from $10.1\%$ ($N_{\text{sims}}=15$) up to $\mathbf{34.3\%}$ ($N_{\text{sims}}=200$). (Top-Right) Node expansion comparison showing search tree compression. (Bottom-Left) Query latency benchmark confirming PointNet hash lookup ($\mathbf{4.22\ \mu s/query}$) delivers an $\mathbf{18.6\times}$ speedup over Sinkhorn Optimal Transport EMD ($78.4\ \mu\text{s/query}$). (Bottom-Right) Value error convergence under exact Bellman future-value decomposition.}
 \label{fig:belief_graph_benchmark}
 \end{figure}
 
@@ -586,25 +580,58 @@ Two search histories $h_1, h_2$ at depth $d \ge 2$ merge into a shared DAG node 
 \end{definition}
 
 \subsubsection{Exact Bellman Future-Value Decomposition}
-A major challenge in DAG-MCTS is preventing prefix-reward contamination when multiple distinct paths merge into node $w$. If parent $u_1$ traversed a high-reward zone while $u_2$ traversed an empty zone, backpropagating cumulative path rewards would corrupt search from $u_2$. We solve this through exact Bellman decomposition:
+A major challenge in DAG-MCTS is preventing prefix-reward contamination when multiple distinct paths merge into node $w$. If parent $u_1$ traversed a high-reward zone while $u_2$ traversed an empty zone, naively averaging path returns would corrupt the value estimation of $u_2$. We solve this through Bellman future-value decomposition:
 \begin{itemize}
-    \item Each node $w$ stores \textbf{strictly} the future value-to-go $V(w)$ from depth $d$ onward.
+    \item Each node $w$ stores strictly the future value-to-go $V(w)$ from depth $d$ onward.
     \item Each parent edge $(u, a) \to w$ stores its own immediate transition reward $R(u, a)$, computing:
     \begin{equation}
-        Q_{\text{DAG}}(u, a) = (1 - \lambda) \cdot Q_{\text{direct}}(u, a) + \lambda \cdot V_{\text{pooled}}(w)
+        Q_{\text{DAG}}(u, a) = (1 - \lambda) \cdot Q_{\text{direct}}(u, a) + \lambda \cdot \big(R(u, a) + \gamma V_{\text{pooled}}(w)\big)
     \end{equation}
     where $\lambda = 0.30$.
 \end{itemize}
-This guarantees zero reward leakage across incoming trajectories.
+This formulation isolates past path rewards from downstream value estimation.
+
+\begin{algorithm}[!t]
+\caption{Latent Belief-Graph POMCP (DAG-MCTS)}
+\label{alg:dag_mcts}
+\begin{algorithmic}[1]
+\REQUIRE Root belief $\mathcal{B}_t$, budget $N_{\text{sims}}$, depth horizon $D=6$
+\STATE Initialize transposition hash table $\mathcal{T}_{\text{DAG}} \leftarrow \emptyset$
+\FOR{$k = 1$ to $N_{\text{sims}}$}
+    \STATE Sample state $\mathbf{s}_0 \sim \mathcal{B}_t$, set $u \leftarrow \text{root}$, $d \leftarrow 0$, path $\mathcal{P} \leftarrow []$
+    \WHILE{$d < D$ \textbf{and} NOT Terminal($u$)}
+        \STATE $a \leftarrow \arg\max_{a'} \big[ Q_{\text{DAG}}(u, a') + c_{\text{puct}} \mathbf{P}_\theta(u, a') \frac{\sqrt{\sum_b N(u,b)}}{1 + N(u, a')} \big]$
+        \STATE Step continuous simulator: $\mathbf{s}' \sim \mathcal{T}(\mathbf{s}, a)$, $r \leftarrow \mathcal{R}(\mathbf{s}, a)$
+        \STATE Compute key: $K \leftarrow \big( \sum_{t=0}^d \mathbf{a}_t, \lfloor \mathbf{p} / \tau_{\text{pos}} \rceil, \mathbf{z}_{\text{belief}} \big)$
+        \IF{$\exists w \in \mathcal{T}_{\text{DAG}}$ with $K \approx K(w) \land 1 - \mathbf{z} \cdot \mathbf{z}_w \le 0.015$}
+            \STATE $v \leftarrow w$ \COMMENT{Merge commutative transposition into DAG}
+        \ELSE
+            \STATE Allocate DAG node $v$, store key $(K, v) \to \mathcal{T}_{\text{DAG}}$
+        \ENDIF
+        \STATE Record edge transition: $\mathcal{P}\text{.append}\big((u, a, r, v)\big)$
+        \STATE $u \leftarrow v$, $d \leftarrow d + 1$
+    \ENDWHILE
+    \STATE Evaluate leaf return: $v_{\text{leaf}} \leftarrow V_\phi(u)$
+    \FOR{each $(u, a, r, v) \in \text{reversed}(\mathcal{P})$}
+        \STATE $N(v) \leftarrow N(v) + 1$, $V(v) \leftarrow V(v) + \frac{v_{\text{leaf}} - V(v)}{N(v)}$
+        \STATE $N(u, a) \leftarrow N(u, a) + 1$
+        \STATE $Q_{\text{direct}}(u, a) \leftarrow Q_{\text{direct}}(u, a) + \frac{(r + \gamma v_{\text{leaf}}) - Q_{\text{direct}}(u, a)}{N(u, a)}$
+        \STATE $Q_{\text{DAG}}(u, a) \leftarrow (1 - \lambda) Q_{\text{direct}}(u, a) + \lambda \big(r + \gamma V(v)\big)$
+        \STATE $v_{\text{leaf}} \leftarrow r + \gamma v_{\text{leaf}}$
+    \ENDFOR
+\ENDFOR
+\RETURN $a^* = \arg\max_a N(\text{root}, a)$
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Periodic Event-Triggered Control (PETC) Information Gate}
-Periodic MCTS execution ($t \bmod 15 = 0$) wastes search in steady-state tracking while incurring up to 14 frames of reaction lag at blind corners. We introduce \textbf{PETC Information Gating}: evaluated at candidate instants, MCTS triggers indicator $\sigma_i(t) \in \{0, 1\}$:
+Periodic MCTS execution ($t \bmod 15 = 0$) wastes search in steady-state tracking while incurring reaction lag at blind corners. We introduce \textbf{PETC Information Gating}: evaluated at candidate control steps, MCTS replanning triggers indicator $\sigma_i(t) \in \{0, 1\}$:
 \begin{align}
-    \sigma_i(t) &= \mathbb{I}\Big( \mathcal{E}_{\text{init}} \lor \mathcal{E}_{\text{LOS}} \lor \mathcal{E}_{\text{geom}} \lor \mathcal{E}_{\text{entropy}} \lor \mathcal{E}_{\text{bearing}} \lor \mathcal{E}_{\text{sync}} \Big) \\
-    \mathcal{E}_{\text{entropy}} &= \big| \mathcal{S}(\mathcal{B}_t) - \mathcal{S}(\mathcal{B}_{t_{\text{last}}}) \big| > 16.0\text{ px} \\
+    \sigma_i(t) &= \mathbb{I}\Big( \mathcal{E}_{\text{init}} \lor \mathcal{E}_{\text{LOS}} \lor \mathcal{E}_{\text{geom}} \lor \mathcal{E}_{\text{disp}} \lor \mathcal{E}_{\text{bearing}} \lor \mathcal{E}_{\text{sync}} \Big) \\
+    \mathcal{E}_{\text{disp}} &= \big| \mathcal{S}(\mathcal{B}_t) - \mathcal{S}(\mathcal{B}_{t_{\text{last}}}) \big| > 16.0\text{ px} \\
     \mathcal{E}_{\text{bearing}} &= \cos\big( \mathbf{w}_i^* - \mathbf{p}_i, \; \boldsymbol{\mu}_B - \mathbf{p}_i \big) < 0.82 \lor \|\Delta \boldsymbol{\mu}_B\| > 32\text{ px}
 \end{align}
-If all event triggers evaluate to False, the agent executes Zero-Order Hold (ZOH) on its current strategic waypoint, advancing the RNG stream identically to maintain particle filter determinism.
+where $\mathcal{S}(\mathcal{B}_t) = \frac{1}{M}\sum_{m=1}^M \|\mathbf{e}_t^{(m)} - \boldsymbol{\mu}_B\|_2$ measures particle spatial dispersion in pixels. If all event triggers evaluate to False, the agent executes Zero-Order Hold (ZOH) on its current strategic waypoint, advancing the RNG stream identically to maintain particle filter determinism.
 
 % =========================================================================
 % FIGURE 4: ADVERSARIAL EVADER BENCHMARK
@@ -612,19 +639,19 @@ If all event triggers evaluate to False, the agent executes Zero-Order Hold (ZOH
 \begin{figure}[!t]
 \centering
 \includegraphics[width=\columnwidth]{adversarial_evader_benchmark.png}
-\caption{\textbf{Adversarial Smarter Evader Trajectory Analysis \& Level-2 Counter-Deception Evaluation}: (Top-Left) Multi-ray clearance escape vectors computed by the smarter evader; (Top-Right) Evader executing an occluded J-hook feint maneuver into a blind alcove; (Bottom-Left) Unimodal tracking failure (red trajectory overshooting) vs Counter-Deceptive Bimodal Filter interception (blue trajectory); (Bottom-Right) Empirical win rate comparison across 240 episodes demonstrating a $\mathbf{+16.7\%}$ absolute gain ($\mathbf{75.0\%}$ vs $58.3\%$) via Bayesian negative-evidence culling.}
+\caption{\textbf{Adversarial Smarter Evader Trajectory Analysis \& Level-2 Counter-Deception Evaluation}: (Top-Left) Multi-ray clearance escape vectors computed by the smarter evader; (Top-Right) Evader executing an occluded J-hook feint maneuver into a blind alcove; (Bottom-Left) Unimodal tracking failure (red trajectory overshooting) vs Counter-Deceptive Bimodal Filter interception (blue trajectory); (Bottom-Right) Win rate comparison across 240 game scenarios demonstrating a $\mathbf{+8.3\%}$ improvement ($\mathbf{75.0\%}$ vs $66.7\%$) over unimodal ET-DAG via bimodal belief tracking.}
 \label{fig:adversarial_evader_benchmark}
 \end{figure}
 
-\subsection{Level-2 Counter-Deception via Bayesian Negative Evidence}
-Against adversarial evaders executing J-hook feints behind occlusions, unimodal momentum belief propagation fails catastrophically (Fig.~\ref{fig:adversarial_evader_benchmark}). Our \textbf{Counter-Deceptive Bimodal Filter} operates in three phases:
+\subsection{Bimodal Belief Filtering Against Feinting Evaders}
+Against adversarial evaders executing J-hook feints behind occlusions, unimodal momentum belief propagation frequently leads to overshooting (Fig.~\ref{fig:adversarial_evader_benchmark}). Our \textbf{Counter-Deceptive Bimodal Filter} operates across three steps:
 \begin{enumerate}
     \item \textbf{Anchoring}: Upon LOS occlusion entry, the pursuer caches anchor pose $\mathbf{p}_{\text{anchor}}$ and velocity $\mathbf{v}_{\text{anchor}}$.
     \item \textbf{Bayesian Negative Evidence Culling}: The pursuer tests whether predicted momentum belief (Mode 0, $\boldsymbol{\mu}_0$) is inside any hunter's unobstructed visual cone:
     \begin{equation}
         \text{Falsified}(\text{Mode 0}) = \mathbb{I}\big( \exists i: \|\mathbf{p}_i - \boldsymbol{\mu}_0\| < 75\text{ px} \land \text{ClearLOS}(\mathbf{p}_i, \boldsymbol{\mu}_0) \big)
     \end{equation}
-    If a hunter has clear sight to $\boldsymbol{\mu}_0$ yet $\text{LOS} = \text{False}$, Mode 0 is mathematically falsified by negative Bayesian evidence.
+    If a hunter has clear sight to $\boldsymbol{\mu}_0$ yet $\text{LOS} = \text{False}$, Mode 0 is falsified by negative visual evidence, and particle weights are redistributed to Mode 1.
     \item \textbf{Bimodal Splitting}: Synthesizes Mode 1 ($\mathbf{p}_{\text{feint}}$) behind the obstacle shadow:
     \begin{equation}
         \mathbf{p}_{\text{feint}} = \arg\max_{\mathbf{x} \in \mathcal{H}} \big( \|\mathbf{x} - \boldsymbol{\mu}_0\| + 400 \cdot \mathbb{I}(\text{Occluded}(\mathbf{x})) \big)
@@ -633,7 +660,7 @@ Against adversarial evaders executing J-hook feints behind occlusions, unimodal 
 \end{enumerate}
 
 \subsection{Teleological Intention Sharing}
-To resolve ``Symmetric Greed'', we establish the Inter-Pursuer Intention Bus. At planning step $t$, Agent $i$ broadcasts its teleological commitment tuple:
+To resolve ``Symmetric Greed'', we establish the Inter-Pursuer Intention Bus \cite{macalpine2018customized}. At planning step $t$, Agent $i$ broadcasts its teleological commitment tuple:
 \begin{equation}
     \mathcal{I}_i = \big( \mathbf{w}_i^*, \; \hat{\mathbf{u}}_i, \; t_{\text{commit}}, \; \mathbf{b}_i \big)
 \end{equation}
@@ -644,12 +671,12 @@ In Partner Agent $j$'s MCTS lookahead ($j \neq i$), simulated states $\mathbf{x}
         R_{\text{clash}}(\mathbf{x}_j) = -4.0 \cdot \exp\left( -\frac{\|\mathbf{x}_j - \mathbf{w}_i^*\|^2}{2 \sigma_{\text{repel}}^2} \right) \cdot \mathbb{I}(d_{i \to e} > 75\text{ px})
     \end{equation}
     with $\sigma_{\text{repel}} = 35.0\text{ px}$. Repulsion is suppressed within $75\text{ px}$ of the evader to permit close physical capture.
-    \item \textbf{Orthogonal Pincer Flanking Reward}:
+    \item \textbf{Pincer Encirclement Reward}:
     \begin{align}
         \cos(\Delta\phi) &= \frac{(\mathbf{x}_e - \mathbf{x}_j) \cdot (\mathbf{x}_e - \mathbf{w}_i^*)}{\|\mathbf{x}_e - \mathbf{x}_j\| \|\mathbf{x}_e - \mathbf{w}_i^*\|} \\
         R_{\text{pincer}} &= +3.5 \cdot \sin^2\left(\frac{\Delta\phi}{2}\right) = +3.5 \cdot \left(\frac{1 - \cos(\Delta\phi)}{2}\right)
     \end{align}
-    maximizing returns when pursuers bracket the target orthogonally ($\Delta\phi = 90^\circ, R = +1.75$) or in head-on opposition ($\Delta\phi = 180^\circ, R = +3.50$).
+    This reward increases monotonically with separation angle $\Delta\phi$, rewarding wide flanking ($+1.75$ at $90^\circ$) up to head-on pincer opposition ($+3.50$ at $180^\circ$).
 \end{enumerate}
 
 % =========================================================================
@@ -658,7 +685,7 @@ In Partner Agent $j$'s MCTS lookahead ($j \neq i$), simulated states $\mathbf{x}
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=0.95\textwidth]{thorough_benchmark_results.png}
-\caption{\textbf{Comprehensive 160-Episode Empirical Benchmark: Intention Sharing vs. Belief Sharing}: Statistically rigorous evaluation across Dec-POMDP (Pygame 2D), Speed Asymmetry ($\alpha=1.15$), and MuJoCo Continuous Unicycle Physics across 4 challenging topologies (\texttt{u\_trap}, \texttt{dense\_maze}, \texttt{bimodal\_fork}, \texttt{figure\_8}). (Panel 1) Win rate comparison confirming a $\mathbf{+30.0\%}$ boost ($\mathbf{70.0\%}$ vs $40.0\%$) in MuJoCo continuous physics ($p < 0.05$). (Panel 2) Mean Time-to-Capture (TTC) demonstrating a $\mathbf{179.4}$-step acceleration in Dec-POMDP. (Panel 3) Inter-pursuer overlap steps ($<50\text{ px}$) showing complete elimination of corridor crowding in dense mazes. (Panel 4) Terminal flanking angles confirming bracket encirclement ($\approx 80^\circ$).}
+\caption{\textbf{Comprehensive 160-Episode Empirical Benchmark: Intention Sharing vs. Belief Sharing}: Evaluation across Dec-POMDP (Pygame 2D), Speed Asymmetry ($\alpha=1.15$), and MuJoCo Continuous Unicycle Physics across 4 challenging topologies (\texttt{u\_trap}, \texttt{dense\_maze}, \texttt{bimodal\_fork}, \texttt{figure\_8}). (Panel 1) Win rate comparison showing a $\mathbf{+30.0\%}$ boost ($\mathbf{70.0\%}$ vs $40.0\%$) in MuJoCo continuous physics. (Panel 2) Mean Time-to-Capture (TTC) demonstrating a $\mathbf{179.4}$-step acceleration in 2D Dec-POMDP. (Panel 3) Inter-pursuer corridor overlap steps ($<50\text{ px}$). (Panel 4) Terminal flanking angles confirming angular bracketing ($60.2^\circ$--$84.6^\circ$).}
 \label{fig:thorough_benchmark}
 \end{figure*}
 
@@ -707,26 +734,26 @@ The experimental suite evaluates policies across six procedural and structured t
 \midrule
 \textbf{Search Efficiency ($N_{\text{sims}}=20$)} & Unique DAG Nodes & --- & --- & --- & 60.1 (Tree) & \textbf{58.8 (DAG)} & \textbf{58.8 (DAG)} & \textbf{58.8 (DAG)} \\
 & Transposition Merge Rate & 0.0\% & 0.0\% & 0.0\% & 0.0\% & 11.3\% & 11.3\% & \textbf{26.5\% (N=60)} \\
-& Total MCTS Sims / Ep & --- & --- & --- & 1895.0 & \textbf{1213.3 ($-$67.7\%)} & 1240.0 & \textbf{1180.0} \\
+& Total MCTS Sims / Ep & --- & --- & --- & 1895.0 & \textbf{1213.3 ($-$36.0\%)} & 1240.0 & \textbf{1180.0} \\
 \bottomrule
 \end{tabular}%
 }
 \end{table*}
 
-\subsection{Exp 1: Zero-Shot Generalization \& Multimodal Belief}
-Across 20 procedural maps ($N=80$ episodes total): Deep-POMCP achieves \textbf{100.0\% Win Rate}, $0.91\text{ ms}$ latency, and only \textbf{0.3 wall hits/episode} (vs. 2.1 for A* and 8.0 for POMCP). In 100 occlusion bifurcation events, PointNet encoding achieves mean $D_{\text{KL}} = \mathbf{0.0541\text{ nats}}$ versus $0.1014\text{ nats}$ for Gaussian summaries (\textbf{46.6\%} reduction in information loss).
+\subsection{Exp 1: Generalization Across Unseen Maps \& Belief Fidelity}
+Across 20 procedurally generated maps ($N=80$ episodes total): Deep-POMCP achieves \textbf{100.0\% Win Rate}, $0.91\text{ ms}$ latency, and \textbf{0.3 wall hits/episode} (vs. 2.1 for A* and 8.0 for POMCP). In 100 occlusion bifurcation events, spatial density KL divergence evaluated over a discretized $32 \times 32$ grid yields mean $D_{\text{KL}} = \mathbf{0.0541\text{ nats}}$ for PointNet versus $0.1014\text{ nats}$ for Gaussian approximations (\textbf{46.6\%} reduction in information loss).
 
 \subsection{Exp 2: Cooperative Sacrifice \& Causal Mechanism Discovery}
-In \texttt{switch\_door\_pomdp} ($N=120$ runs): Reactive A* and POMCP baselines fail completely ($0.0\%$ win rate, $100\%$ timeout). Deep-POMCP achieves a \textbf{100.0\% Switch Trigger Rate} and \textbf{63.3\% Win Rate} zero-shot. Under latent causal confusion (\texttt{causal\_switch\_pomdp}, $K=3$ switches with randomized wiring permutations), Causal Mac-POMCP achieves \textbf{100.0\% Win Rate} by actively perturbing switches to identify the true causal graph.
+In \texttt{switch\_door\_pomdp} ($N=120$ runs): Reactive A* and POMCP baselines fail completely ($0.0\%$ win rate, $100\%$ timeout) due to inability to plan delayed-gratification switch holding. Deep-POMCP achieves a \textbf{100.0\% Switch Trigger Rate} and \textbf{63.3\% Win Rate}. Under latent causal confusion (\texttt{causal\_switch\_pomdp}, $K=3$ switches with randomized wiring permutations), Causal Mac-POMCP achieves \textbf{100.0\% Win Rate} by actively perturbing candidate switches to identify the true causal connection.
 
 \subsection{Exp 3: DAG Compression \& Latency Speedup}
-Measuring transposition merging (Fig.~\ref{fig:belief_graph_benchmark}): merge rate scales from $10.1\%$ ($N=15$) to $\mathbf{34.3\%}$ ($N=200$). In a 200-particle transposition lookup benchmark, PointNet latent hashing requires $\mathbf{4.22\ \mu s/query}$ versus $78.4\ \mu\text{s/query}$ for 200-particle Sinkhorn Optimal Transport EMD---an \textbf{18.6$\times$ computational speedup}.
+Measuring transposition merging (Fig.~\ref{fig:belief_graph_benchmark}): merge rate scales from $10.1\%$ ($N_{\text{sims}}=15$) to $\mathbf{34.3\%}$ ($N_{\text{sims}}=200$). In a 200-particle transposition lookup benchmark, PointNet latent cosine hashing requires $\mathbf{4.22\ \mu s/query}$ versus $78.4\ \mu\text{s/query}$ for 200-particle Sinkhorn Optimal Transport EMD---an \textbf{18.6$\times$ computational speedup}. PETC gating reduces total MCTS calls from $1895.0$ to $1213.3$ ($-$36.0\%), keeping 2D planning latency at $0.48\text{ ms}$.
 
 \subsection{Exp 4: Level-2 Counter-Deception Benchmark}
-Against the J-hook feinting evader ($N=240$ episodes, Fig.~\ref{fig:adversarial_evader_benchmark}): Reactive A* collapses to $10.0\%$ win rate. Unimodal ET-DAG achieves $58.3\%$, while Counter-Deceptive Bimodal POMCP (\texttt{CD-ET-DAG}) achieves $\mathbf{75.0\%}$ win rate ($\mathbf{+16.7\%}$ gain), triggering $1.4$ bimodal splits and $1.2$ negative-evidence prunes per episode with zero ground-truth leakage.
+Against the J-hook feinting evader ($N=240$ scenarios, Fig.~\ref{fig:adversarial_evader_benchmark}): Reactive A* collapses to $10.0\%$ win rate ($1/10$). Unimodal ET-DAG achieves $66.7\%$ ($8/12$), while Counter-Deceptive Bimodal POMCP (\texttt{CD-ET-DAG}) achieves $\mathbf{75.0\%}$ win rate ($9/12$, a $\mathbf{+8.3\%}$ gain), triggering $1.4$ bimodal splits and $1.2$ negative-evidence prunes per episode with zero ground-truth leakage.
 
-\subsection{Exp 5: Statistically Rigorous Intention Sharing Benchmark (160 Audited Episodes)}
-To rigorously assess Intention Sharing, we executed a battery of \textbf{160 audited episodes} comparing Belief Sharing Only (\texttt{CD-ET-DAG}) vs. Belief + Intention Sharing (\texttt{IS-CD-ET-DAG}, Ours). Results are compiled in Table~\ref{tab:thorough_benchmark} and visualized in Fig.~\ref{fig:thorough_benchmark}.
+\subsection{Exp 5: 160-Episode Head-to-Head Intention Sharing Benchmark}
+To rigorously assess Intention Sharing, we executed a battery of \textbf{160 audited episodes} comparing Belief Sharing Only (\texttt{CD-ET-DAG}) vs. Belief + Intention Sharing (\texttt{IS-CD-ET-DAG}, Ours). Confidence intervals are reported using Wilson score intervals \cite{wilson1927probable}. Results are compiled in Table~\ref{tab:thorough_benchmark} and visualized in Fig.~\ref{fig:thorough_benchmark}.
 
 \begin{table*}[t]
 \centering
@@ -752,7 +779,7 @@ To rigorously assess Intention Sharing, we executed a battery of \textbf{160 aud
 
 \begin{table}[htbp]
 \centering
-\caption{Detailed Topological Breakdown in MuJoCo Continuous Physics}
+\caption{Detailed Topological Breakdown in MuJoCo Continuous Physics ($N=5\text{ eps/map}$)}
 \label{tab:mujoco_breakdown}
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lcccc@{}}
@@ -770,28 +797,30 @@ To rigorously assess Intention Sharing, we executed a battery of \textbf{160 aud
 }
 \end{table}
 
-\subsection{Statistical Significance \& Discussion}
+\subsection{Discussion \& Statistical Analysis}
 \begin{enumerate}
-    \item \textbf{High-Fidelity Physics Transfer (+30.0\% Win Rate)}: In 2D point-mass grid worlds, agents can reverse direction instantaneously. In Google DeepMind's MuJoCo continuous unicycle dynamics, robots possess yaw inertia and turning radii. Under Belief Sharing alone, robots crowd corridors and collide. Intention Sharing forces early Voronoi spatial divergence, boosting continuous capture rates from \textbf{40.0\%} to \textbf{70.0\%} ($p < 0.05$).
-    \item \textbf{Chokepoint Pursuit Acceleration}: In Dec-POMDP, Intention Sharing captures the evader \textbf{179.4 steps faster} ($254.7$ steps faster in \texttt{u\_trap}, $189.2$ steps faster in \texttt{dense\_maze}).
-    \item \textbf{Loop Maze Cycle Resolution (\texttt{figure\_8})}: In \texttt{figure\_8}, Belief Sharing causes endless single-file chasing ($10.0\%$ win rate). Intention Sharing forces pursuers to branch clockwise and counter-clockwise, achieving an \textbf{80.0\% win rate} in MuJoCo.
+    \item \textbf{High-Fidelity Physics Transfer}: In 2D kinematic worlds, point-mass agents can reverse direction instantaneously. Under Google DeepMind's MuJoCo continuous unicycle dynamics, robots possess yaw inertia, non-holonomic turning radii, and contact friction. Under Belief Sharing alone, pursuers frequently congest chokepoints. Intention Sharing coordinates spatial separation, increasing continuous capture rates from $40.0\%$ ($8/20$) to $\mathbf{70.0\%}$ ($14/20$, a $+30.0\%$ absolute gain, Wilson CI $[48.1\%, 85.5\%]$). Fisher's exact test yields $p = 0.11$, reflecting a consistent positive trend across 3 of 4 topologies that warrants larger-scale trials.
+    \item \textbf{Chokepoint Pursuit Acceleration}: In 2D Dec-POMDP, Intention Sharing maintains capture rate ($42.5\%$) while capturing the evader \textbf{$179.4$ steps faster} ($473.4$ vs $652.8$ steps).
+    \item \textbf{Loop Maze Cycle Resolution (\texttt{figure\_8})}: In \texttt{figure\_8}, Belief Sharing results in single-file pursuit loops ($20.0\%$ win rate). Intention Sharing forces pursuers to branch clockwise and counter-clockwise, achieving an \textbf{$80.0\%$ win rate} in MuJoCo.
+    \item \textbf{Speed Asymmetry Observations}: When the evader moves faster than pursuers ($\alpha=1.15$), Intention Sharing win rate was $40.0\%$ (vs $50.0\%$ for belief-only). This reveals that spatial repulsive barriers must be dynamically scaled when pursuers lack top-speed parity, as wide flanking can allow a faster target to exploit open corridors.
+    \item \textbf{Topological Variations in MuJoCo}: In open loops (\texttt{figure\_8}, \texttt{bimodal\_fork}, \texttt{u\_trap}), Intention Sharing accelerated capture by $103-280$ steps. In \texttt{dense\_maze}, narrow branching corridors combined with unicycle turning constraints resulted in $+490.0$ steps TTC, reflecting the added maneuvering time required to execute wide flankings in narrow geometries.
 \end{enumerate}
 
 % =========================================================================
 % SECTION VI: ROBOTICS DEPLOYMENT
 % =========================================================================
-\section{Real-World Robotics Deployment \& ROS 2 Bridge}
-To enable hardware deployment, we developed a production ROS 2 Humble/Iron bridge package (\texttt{project/ros2\_bridge/}):
+\section{Robotics Deployment Architecture \& ROS 2 Bridge}
+To provide a software-in-the-loop (SITL) bridge toward hardware deployment, we developed a ROS 2 Humble/Iron package (\texttt{project/ros2\_bridge/}):
 \begin{itemize}
     \item \textbf{Nodes}: \texttt{pomcp\_ros2\_node.py} subscribes to \texttt{/scan} (laser rangefinders) and \texttt{/odom} (wheel odometry), and publishes standard \texttt{geometry\_msgs/Twist} command velocities ($v_x, \omega_z$).
-    \item \textbf{Edge Execution}: Average decision latency ($3.47\text{ ms}$) permits deterministic execution on embedded compute platforms (e.g., NVIDIA Jetson Orin Nano, Raspberry Pi 5).
+    \item \textbf{Edge Execution Feasibility}: Average decision latency ($0.48\text{ ms}$ in 2D, $3.47\text{ ms}$ under full MuJoCo contact physics) satisfies the $100\text{ Hz}$ control rate required for embedded compute boards (e.g., NVIDIA Jetson Orin Nano, Raspberry Pi 5), laying the software foundation for future TurtleBot4 physical trials.
 \end{itemize}
 
 % =========================================================================
 % SECTION VII: CONCLUSION
 % =========================================================================
 \section{Conclusion \& Future Work}
-This capstone project establishes a complete paradigm shift from classical POMCP to neural, graph-based, and intention-coordinated multi-agent planning. Deep-POMCP resolves continuous rollout divergence via PointNet belief encoding and depth-truncated PUCT; eliminates tree bloat via DAG transposition merging ($18.6\times$ faster than Optimal Transport); accelerates decision-making via Periodic Event-Triggered Control ($67.7\%$ compute reduction); outsmarts deceptive adversaries via Bayesian negative evidence; and solves multi-agent ``Symmetric Greed'' via Teleological Intention Sharing ($+30.0\%$ win rate in MuJoCo continuous unicycle physics). Future work will extend the framework to heterogeneous drone-ground swarms ($N \ge 3$) and physical hardware trials on TurtleBot4 platforms.
+This capstone project presents Deep-POMCP, an integrated neural belief-space planning and physical control framework for multi-agent pursuit-evasion under continuous partial observability. Deep-POMCP replaces unguided rollouts with permutation-invariant PointNet belief encoding; mitigates tree bloat via DAG transposition merging ($18.6\times$ faster than Optimal Transport EMD); lowers planning invocations by $36.0\%$ through periodic event-triggered control; tracks bimodal belief hypotheses to counter deceptive feints; and addresses multi-agent chokepoint deadlocks via teleological intention sharing ($+30.0\%$ capture win rate in continuous MuJoCo unicycle dynamics). Future work will expand the framework to heterogeneous aerial-ground teams ($N \ge 3$) and validate performance on physical TurtleBot4 robotic hardware.
 
 % =========================================================================
 % REFERENCES
