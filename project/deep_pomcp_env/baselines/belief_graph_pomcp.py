@@ -690,10 +690,12 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
 
                     other_id = 1 if agent_id == 0 else 0
                     ally_pos = info["hunter_positions"][other_id]
-                    ally_tgt = self.final_targets.get(other_id, None)
-                    partner_intention = self.shared_intentions.get(other_id, None) if self.enable_intention_sharing else None
-                    if ally_tgt is None and partner_intention is not None:
-                        ally_tgt = partner_intention.get("waypoint", None)
+                    if self.enable_intention_sharing:
+                        partner_intention = self.shared_intentions.get(other_id, None)
+                        ally_tgt = partner_intention.get("waypoint", None) if partner_intention else None
+                    else:
+                        partner_intention = None
+                        ally_tgt = None
 
                     strategic_dir = self._run_belief_graph_mcts(
                         obs, h_pos, h_vel, ally_pos, b_mean,

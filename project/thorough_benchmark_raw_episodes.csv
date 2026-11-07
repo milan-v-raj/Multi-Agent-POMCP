@@ -1,0 +1,161 @@
+captured,ttc,overlap_steps,mean_sep,flank_angle,mcts_clashes,mcts_bonuses,policy,condition,preset,episode,seed
+False,1000,37,192.63541174316407,0.0,0,0,Belief Only,standard_dec_pomdp,u_trap,0,10703
+True,514,0,290.9240945897678,99.03395997337435,0,0,Belief Only,standard_dec_pomdp,u_trap,1,10740
+True,952,2,328.66310572423856,78.70795515914304,0,0,Belief Only,standard_dec_pomdp,u_trap,2,10777
+False,1000,13,227.604648001194,0.0,0,0,Belief Only,standard_dec_pomdp,u_trap,3,10814
+True,478,0,276.1847256776179,43.7418765262755,0,0,Belief Only,standard_dec_pomdp,u_trap,4,10851
+True,855,13,332.8032666747333,55.169300611127234,0,0,Belief Only,standard_dec_pomdp,u_trap,5,10888
+False,1000,10,249.1165964012146,0.0,0,0,Belief Only,standard_dec_pomdp,u_trap,6,10925
+False,1000,0,289.88042560577395,0.0,0,0,Belief Only,standard_dec_pomdp,u_trap,7,10962
+False,1000,61,237.33009720420839,0.0,0,0,Belief Only,standard_dec_pomdp,u_trap,8,10999
+True,773,13,261.9855186047869,114.73852774411645,0,0,Belief Only,standard_dec_pomdp,u_trap,9,11036
+True,971,0,190.3799932226462,70.34511479715296,0,0,Belief Only,standard_dec_pomdp,dense_maze,0,10520
+True,805,47,169.88877523907965,149.22514193866655,0,0,Belief Only,standard_dec_pomdp,dense_maze,1,10557
+True,739,87,164.7713108820909,107.03033125043383,0,0,Belief Only,standard_dec_pomdp,dense_maze,2,10594
+True,398,0,210.6322646596324,80.9025042314193,0,0,Belief Only,standard_dec_pomdp,dense_maze,3,10631
+False,1000,55,201.2732975921631,0.0,0,0,Belief Only,standard_dec_pomdp,dense_maze,4,10668
+True,666,27,231.33184886336684,90.64469141385756,0,0,Belief Only,standard_dec_pomdp,dense_maze,5,10705
+True,414,0,236.08019348734243,30.61594932655916,0,0,Belief Only,standard_dec_pomdp,dense_maze,6,10742
+False,1000,107,185.3314606590271,0.0,0,0,Belief Only,standard_dec_pomdp,dense_maze,7,10779
+True,645,0,193.1491334841233,4.751554266724546,0,0,Belief Only,standard_dec_pomdp,dense_maze,8,10816
+True,440,0,231.1321193001487,5.073156372827391,0,0,Belief Only,standard_dec_pomdp,dense_maze,9,10853
+False,1000,0,301.11135316467283,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,0,10527
+False,1000,0,323.46622883605954,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,1,10564
+False,1000,0,280.7240368347168,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,2,10601
+True,581,0,362.0288463599095,85.4967300208776,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,3,10638
+False,1000,24,347.2351527404785,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,4,10675
+False,1000,20,192.28377635955812,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,5,10712
+True,400,0,372.45243518829346,152.51251413044938,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,6,10749
+True,960,0,310.9388807614644,113.20854972500176,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,7,10786
+False,1000,70,347.6202168540955,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,8,10823
+False,1000,0,321.47686241149904,0.0,0,0,Belief Only,standard_dec_pomdp,bimodal_fork,9,10860
+False,1000,28,298.77005490493775,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,0,10569
+False,1000,63,143.70187588310242,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,1,10606
+False,1000,0,272.579311050415,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,2,10643
+False,1000,0,222.76338667678834,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,3,10680
+False,1000,101,226.89708773994445,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,4,10717
+False,1000,0,336.5656156768799,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,5,10754
+False,1000,58,214.98604411506653,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,6,10791
+False,1000,27,234.50740688896178,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,7,10828
+True,548,57,168.68585554178614,16.062093216605852,0,0,Belief Only,standard_dec_pomdp,figure_8,8,10865
+False,1000,22,238.74832472419737,0.0,0,0,Belief Only,standard_dec_pomdp,figure_8,9,10902
+True,556,0,405.85984168292805,146.73530667069383,0,699,Belief + Intention,standard_dec_pomdp,u_trap,0,10703
+True,221,0,356.0259455339941,8.438011323271017,0,101,Belief + Intention,standard_dec_pomdp,u_trap,1,10740
+False,1000,0,292.1279904937744,0.0,121,478,Belief + Intention,standard_dec_pomdp,u_trap,2,10777
+False,1000,0,229.9504468307495,0.0,197,331,Belief + Intention,standard_dec_pomdp,u_trap,3,10814
+False,1000,0,260.91283757019045,0.0,96,646,Belief + Intention,standard_dec_pomdp,u_trap,4,10851
+False,1000,16,242.73729114151,0.0,253,427,Belief + Intention,standard_dec_pomdp,u_trap,5,10888
+False,1000,33,206.31129550933838,0.0,190,166,Belief + Intention,standard_dec_pomdp,u_trap,6,10925
+True,602,0,306.20583733846973,168.29076464679818,0,606,Belief + Intention,standard_dec_pomdp,u_trap,7,10962
+False,1000,20,218.23272902679443,0.0,239,135,Belief + Intention,standard_dec_pomdp,u_trap,8,10999
+False,1000,38,220.70963082551955,0.0,197,345,Belief + Intention,standard_dec_pomdp,u_trap,9,11036
+False,1000,0,235.94007647705078,0.0,174,246,Belief + Intention,standard_dec_pomdp,dense_maze,0,10520
+True,204,0,353.3917424819049,97.32339793080118,0,346,Belief + Intention,standard_dec_pomdp,dense_maze,1,10557
+True,465,58,196.16376921130765,24.306071016208175,101,375,Belief + Intention,standard_dec_pomdp,dense_maze,2,10594
+False,1000,71,199.98985644721984,0.0,274,1183,Belief + Intention,standard_dec_pomdp,dense_maze,3,10631
+False,1000,0,207.27076095199584,0.0,107,688,Belief + Intention,standard_dec_pomdp,dense_maze,4,10668
+False,1000,14,196.35210090637207,0.0,176,540,Belief + Intention,standard_dec_pomdp,dense_maze,5,10705
+True,301,0,235.85287992661182,12.722981687272426,0,155,Belief + Intention,standard_dec_pomdp,dense_maze,6,10742
+False,1000,0,276.10138535690305,0.0,82,845,Belief + Intention,standard_dec_pomdp,dense_maze,7,10779
+True,563,24,167.73449442102896,75.44565613498563,163,426,Belief + Intention,standard_dec_pomdp,dense_maze,8,10816
+True,695,0,214.00833661196043,107.74936282184692,136,588,Belief + Intention,standard_dec_pomdp,dense_maze,9,10853
+True,262,0,439.67623470393755,157.57523788364628,0,339,Belief + Intention,standard_dec_pomdp,bimodal_fork,0,10527
+False,1000,0,344.08093772888185,0.0,0,0,Belief + Intention,standard_dec_pomdp,bimodal_fork,1,10564
+True,284,0,397.6581064143651,62.70096710248378,0,650,Belief + Intention,standard_dec_pomdp,bimodal_fork,2,10601
+True,864,38,307.1327601083451,59.13169745196213,226,944,Belief + Intention,standard_dec_pomdp,bimodal_fork,3,10638
+True,917,0,339.85919626250524,106.87292930081097,55,1428,Belief + Intention,standard_dec_pomdp,bimodal_fork,4,10675
+False,1000,0,339.4658320159912,0.0,0,0,Belief + Intention,standard_dec_pomdp,bimodal_fork,5,10712
+False,1000,0,320.3513093719482,0.0,0,0,Belief + Intention,standard_dec_pomdp,bimodal_fork,6,10749
+False,1000,0,324.26184825134277,0.0,0,115,Belief + Intention,standard_dec_pomdp,bimodal_fork,7,10786
+True,240,0,409.2843371709188,67.48780518802755,0,209,Belief + Intention,standard_dec_pomdp,bimodal_fork,8,10823
+False,1000,104,238.9718184337616,0.0,318,606,Belief + Intention,standard_dec_pomdp,bimodal_fork,9,10860
+False,1000,23,170.52273663330078,0.0,477,575,Belief + Intention,standard_dec_pomdp,figure_8,0,10569
+False,1000,400,87.32074504566192,0.0,736,36,Belief + Intention,standard_dec_pomdp,figure_8,1,10606
+False,1000,0,210.08039577102662,0.0,77,241,Belief + Intention,standard_dec_pomdp,figure_8,2,10643
+True,749,0,242.59793714210093,10.687911022076552,113,335,Belief + Intention,standard_dec_pomdp,figure_8,3,10680
+True,184,0,265.14049455393916,5.008794065980297,10,179,Belief + Intention,standard_dec_pomdp,figure_8,4,10717
+False,1000,0,268.71296696472166,0.0,0,704,Belief + Intention,standard_dec_pomdp,figure_8,5,10754
+False,1000,73,199.73899354648591,0.0,228,293,Belief + Intention,standard_dec_pomdp,figure_8,6,10791
+True,361,0,257.5605062976108,110.63663103207271,1,223,Belief + Intention,standard_dec_pomdp,figure_8,7,10828
+True,717,0,190.59614046913478,129.25551733339677,0,363,Belief + Intention,standard_dec_pomdp,figure_8,8,10865
+False,1000,0,274.544330078125,0.0,0,688,Belief + Intention,standard_dec_pomdp,figure_8,9,10902
+True,407,0,377.13353907329736,149.32572085880233,0,0,Belief Only,speed_asymmetry_1.15,u_trap,0,20703
+True,398,0,361.70554942222094,51.5068748325271,0,0,Belief Only,speed_asymmetry_1.15,u_trap,1,20744
+True,305,0,402.2217384713595,24.612545541312162,0,0,Belief Only,speed_asymmetry_1.15,u_trap,2,20785
+True,251,0,326.61068822853116,73.5728219461465,0,0,Belief Only,speed_asymmetry_1.15,u_trap,3,20826
+True,191,0,278.3557222775764,27.717899556196432,0,0,Belief Only,speed_asymmetry_1.15,u_trap,4,20867
+True,351,0,231.27467361406724,93.13290361670141,0,0,Belief Only,speed_asymmetry_1.15,dense_maze,0,20520
+False,1000,0,191.7655107574463,0.0,0,0,Belief Only,speed_asymmetry_1.15,dense_maze,1,20561
+False,1000,6,161.9321775817871,0.0,0,0,Belief Only,speed_asymmetry_1.15,dense_maze,2,20602
+False,1000,0,214.34973092651367,0.0,0,0,Belief Only,speed_asymmetry_1.15,dense_maze,3,20643
+True,670,0,214.4912076238376,106.61444941132687,0,0,Belief Only,speed_asymmetry_1.15,dense_maze,4,20684
+False,1000,0,339.0887674102783,0.0,0,0,Belief Only,speed_asymmetry_1.15,bimodal_fork,0,20527
+False,1000,28,272.1804548034668,0.0,0,0,Belief Only,speed_asymmetry_1.15,bimodal_fork,1,20568
+False,1000,0,310.53472120666504,0.0,0,0,Belief Only,speed_asymmetry_1.15,bimodal_fork,2,20609
+True,293,0,363.2978821842337,95.03535160133094,0,0,Belief Only,speed_asymmetry_1.15,bimodal_fork,3,20650
+False,1000,0,334.27732249450685,0.0,0,0,Belief Only,speed_asymmetry_1.15,bimodal_fork,4,20691
+False,1000,0,249.56071898651123,0.0,0,0,Belief Only,speed_asymmetry_1.15,figure_8,0,20569
+True,939,0,249.8229623374086,139.2282700002892,0,0,Belief Only,speed_asymmetry_1.15,figure_8,1,20610
+True,223,0,288.6710377509284,70.23692680795014,0,0,Belief Only,speed_asymmetry_1.15,figure_8,2,20651
+False,1000,41,218.3919095840454,0.0,0,0,Belief Only,speed_asymmetry_1.15,figure_8,3,20692
+False,1000,173,218.95761093235015,0.0,0,0,Belief Only,speed_asymmetry_1.15,figure_8,4,20733
+False,1000,24,329.8227554798126,0.0,56,921,Belief + Intention,speed_asymmetry_1.15,u_trap,0,20703
+True,570,0,338.5418237786544,56.968109123631564,0,351,Belief + Intention,speed_asymmetry_1.15,u_trap,1,20744
+True,288,0,290.29746834437054,62.05141181073531,0,421,Belief + Intention,speed_asymmetry_1.15,u_trap,2,20785
+True,874,0,239.43387587174126,69.5691902616146,130,662,Belief + Intention,speed_asymmetry_1.15,u_trap,3,20826
+False,1000,15,189.7681093711853,0.0,193,406,Belief + Intention,speed_asymmetry_1.15,u_trap,4,20867
+False,1000,39,175.22965949821472,0.0,626,197,Belief + Intention,speed_asymmetry_1.15,dense_maze,0,20520
+False,1000,18,184.30317237472534,0.0,380,444,Belief + Intention,speed_asymmetry_1.15,dense_maze,1,20561
+True,290,0,214.88002735006398,128.138498630794,36,249,Belief + Intention,speed_asymmetry_1.15,dense_maze,2,20602
+False,1000,20,184.9309368171692,0.0,262,36,Belief + Intention,speed_asymmetry_1.15,dense_maze,3,20643
+True,873,38,216.0917174108796,97.03004449641115,250,570,Belief + Intention,speed_asymmetry_1.15,dense_maze,4,20684
+False,1000,0,331.04280140686035,0.0,0,0,Belief + Intention,speed_asymmetry_1.15,bimodal_fork,0,20527
+False,1000,0,285.20023707580566,0.0,119,426,Belief + Intention,speed_asymmetry_1.15,bimodal_fork,1,20568
+False,1000,0,311.0085158843994,0.0,0,0,Belief + Intention,speed_asymmetry_1.15,bimodal_fork,2,20609
+False,1000,120,238.31979222297667,0.0,267,869,Belief + Intention,speed_asymmetry_1.15,bimodal_fork,3,20650
+False,1000,0,342.594417678833,0.0,0,0,Belief + Intention,speed_asymmetry_1.15,bimodal_fork,4,20691
+False,1000,10,231.56706065368653,0.0,206,346,Belief + Intention,speed_asymmetry_1.15,figure_8,0,20569
+True,718,14,255.56241691610606,100.65242584926358,3,339,Belief + Intention,speed_asymmetry_1.15,figure_8,1,20610
+True,310,0,155.3247925050797,34.75739964511424,14,132,Belief + Intention,speed_asymmetry_1.15,figure_8,2,20651
+False,1000,200,173.2710464191437,0.0,221,57,Belief + Intention,speed_asymmetry_1.15,figure_8,3,20692
+True,895,58,171.369884283183,127.58385837032623,475,876,Belief + Intention,speed_asymmetry_1.15,figure_8,4,20733
+True,737,0,356.9576402765116,120.49921623979931,0,0,Belief Only,mujoco_continuous_physics,u_trap,0,30703
+False,1000,0,343.14767782592776,0.0,0,0,Belief Only,mujoco_continuous_physics,u_trap,1,30756
+False,1000,0,336.3119894104004,0.0,0,0,Belief Only,mujoco_continuous_physics,u_trap,2,30809
+True,181,0,265.37390364336045,47.17264694442437,0,0,Belief Only,mujoco_continuous_physics,u_trap,3,30862
+False,1000,0,304.7911012573242,0.0,0,0,Belief Only,mujoco_continuous_physics,u_trap,4,30915
+False,1000,0,578.1005960845947,0.0,0,0,Belief Only,mujoco_continuous_physics,dense_maze,0,30520
+False,1000,0,276.6233650970459,0.0,0,0,Belief Only,mujoco_continuous_physics,dense_maze,1,30573
+True,268,0,293.9712151484703,36.509513428524805,0,0,Belief Only,mujoco_continuous_physics,dense_maze,2,30626
+False,1000,0,407.8459159545898,0.0,0,0,Belief Only,mujoco_continuous_physics,dense_maze,3,30679
+True,446,0,197.32173935073374,114.1504868415433,0,0,Belief Only,mujoco_continuous_physics,dense_maze,4,30732
+False,1000,0,330.9294261169434,0.0,0,0,Belief Only,mujoco_continuous_physics,bimodal_fork,0,30527
+False,1000,0,384.36216989135744,0.0,0,0,Belief Only,mujoco_continuous_physics,bimodal_fork,1,30580
+True,526,0,403.9614697010345,104.77582760719564,0,0,Belief Only,mujoco_continuous_physics,bimodal_fork,2,30633
+True,691,0,390.96646597347456,96.05762320134869,0,0,Belief Only,mujoco_continuous_physics,bimodal_fork,3,30686
+True,852,0,470.3395566985081,42.01666755740174,0,0,Belief Only,mujoco_continuous_physics,bimodal_fork,4,30739
+False,1000,0,264.81703979492187,0.0,0,0,Belief Only,mujoco_continuous_physics,figure_8,0,30569
+False,1000,59,230.32701804161073,0.0,0,0,Belief Only,mujoco_continuous_physics,figure_8,1,30622
+False,1000,0,205.92731154632568,0.0,0,0,Belief Only,mujoco_continuous_physics,figure_8,2,30675
+True,812,32,237.43557646474227,22.96622823967843,0,0,Belief Only,mujoco_continuous_physics,figure_8,3,30728
+False,1000,0,94.16617148590088,0.0,0,0,Belief Only,mujoco_continuous_physics,figure_8,4,30781
+True,506,0,178.3070987806961,31.465205610935598,60,33,Belief + Intention,mujoco_continuous_physics,u_trap,0,30703
+False,1000,0,323.8449888305664,0.0,73,1165,Belief + Intention,mujoco_continuous_physics,u_trap,1,30756
+True,281,0,363.1361251776753,91.31633241464593,0,317,Belief + Intention,mujoco_continuous_physics,u_trap,2,30809
+True,281,0,473.4222951868675,33.91135282515757,0,180,Belief + Intention,mujoco_continuous_physics,u_trap,3,30862
+False,1000,0,433.1657612609863,0.0,0,2611,Belief + Intention,mujoco_continuous_physics,u_trap,4,30915
+False,1000,0,317.5203843078613,0.0,0,179,Belief + Intention,mujoco_continuous_physics,dense_maze,0,30520
+True,945,0,300.0448362643126,69.53612886042397,54,176,Belief + Intention,mujoco_continuous_physics,dense_maze,1,30573
+False,1000,277,169.3571216468811,0.0,310,1782,Belief + Intention,mujoco_continuous_physics,dense_maze,2,30626
+True,889,0,406.6108875253203,39.85232868964389,0,784,Belief + Intention,mujoco_continuous_physics,dense_maze,3,30679
+True,707,0,636.3892611405131,66.91191582395066,0,2000,Belief + Intention,mujoco_continuous_physics,dense_maze,4,30732
+True,301,0,478.80183263632944,48.20724332599836,0,500,Belief + Intention,mujoco_continuous_physics,bimodal_fork,0,30527
+True,779,0,368.8212877109513,36.15148371893267,0,1410,Belief + Intention,mujoco_continuous_physics,bimodal_fork,1,30580
+True,783,0,392.08244718354325,143.15739876885277,6,1776,Belief + Intention,mujoco_continuous_physics,bimodal_fork,2,30633
+True,159,0,236.33942370144825,19.70698600338616,0,88,Belief + Intention,mujoco_continuous_physics,bimodal_fork,3,30686
+False,1000,42,232.40693439865112,0.0,81,1687,Belief + Intention,mujoco_continuous_physics,bimodal_fork,4,30739
+True,294,0,368.7313168584084,109.7531903603266,0,389,Belief + Intention,mujoco_continuous_physics,figure_8,0,30569
+True,536,0,442.28186763934235,11.352825592557425,0,385,Belief + Intention,mujoco_continuous_physics,figure_8,1,30622
+True,344,0,379.2193379956623,37.75631282180654,0,353,Belief + Intention,mujoco_continuous_physics,figure_8,2,30675
+False,1000,0,316.0702561264038,0.0,0,484,Belief + Intention,mujoco_continuous_physics,figure_8,3,30728
+True,952,9,140.22572242913125,103.18422211604016,210,573,Belief + Intention,mujoco_continuous_physics,figure_8,4,30781
