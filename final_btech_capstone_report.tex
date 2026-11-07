@@ -457,29 +457,21 @@ where:
 \label{fig:mujoco_env}
 \end{figure*}
 
-\subsection{Google DeepMind MuJoCo Simulation \& 3-DOF Non-Holonomic Unicycle Kinematics}
-To bridge the reality gap of discrete gridworlds, pursuers and evaders are modeled as physical continuous-space mobile robots inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco} (Fig.~\ref{fig:mujoco_env}). The general equations of motion for multi-body rigid systems subject to kinematic constraints are formulated as:
+\subsection{Google DeepMind MuJoCo Simulation \& 3-DOF Unicycle Dynamics}
+To bridge the discrete gridworld reality gap, pursuers and evaders are simulated as physical continuous mobile robots inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco} (Fig.~\ref{fig:mujoco_env}), governed by constrained multi-body rigid dynamics:
 \begin{equation}
     \mathbf{M}(\mathbf{q}) \ddot{\mathbf{q}} + \mathbf{C}(\mathbf{q}, \dot{\mathbf{q}}) = \mathbf{B}\mathbf{u} + \mathbf{J}_c^T(\mathbf{q}) \boldsymbol{\lambda}
 \end{equation}
-where $\mathbf{M}(\mathbf{q})$ is the inertia matrix, $\mathbf{C}(\mathbf{q}, \dot{\mathbf{q}})$ represents Coriolis, centrifugal, and gravitational forces, $\mathbf{B}\mathbf{u}$ represents generalized actuator control forces, and $\mathbf{J}_c^T \boldsymbol{\lambda}$ represents contact constraint impulses enforcing non-penetration and Coulomb friction ($\mu = 0.8$).
+where $\mathbf{M}(\mathbf{q})$ is the inertia tensor, $\mathbf{C}(\mathbf{q}, \dot{\mathbf{q}})$ aggregates Coriolis, centrifugal, and gravitational forces, $\mathbf{B}\mathbf{u}$ denotes actuator generalized forces, and $\mathbf{J}_c^T \boldsymbol{\lambda}$ represents contact constraint impulses enforcing non-penetration and Coulomb friction ($\mu = 0.8$).
 
-Let $\mathbf{q}_i = [x_i, y_i, \theta_i]^T \in SE(2)$ represent the generalized configuration of pursuer $i$, where $(x_i, y_i)$ denotes Cartesian position and $\theta_i \in (-\pi, \pi]$ is the heading yaw angle. The non-holonomic rolling constraint without lateral wheel slip is expressed by the Pfaffian constraint:
+Each pursuer $i$ has configuration $\mathbf{q}_i = [x_i, y_i, \theta_i]^T \in SE(2)$, constrained by the zero lateral wheel-slip Pfaffian condition:
 \begin{equation}
-    \dot{x}_i \sin \theta_i - \dot{y}_i \cos \theta_i = 0
+    \dot{x}_i \sin\theta_i - \dot{y}_i \cos\theta_i = 0 \iff 
+    \begin{bmatrix} \dot{x}_i \\ \dot{y}_i \\ \dot{\theta}_i \end{bmatrix} = 
+    \begin{bmatrix} v_{L,i} \cos\theta_i \\ v_{L,i} \sin\theta_i \\ \omega_i \end{bmatrix}
     \label{eq:unicycle_constraint}
 \end{equation}
-The forward kinematic equations of motion are given by:
-\begin{equation}
-    \begin{bmatrix} \dot{x}_i \\ \dot{y}_i \\ \dot{\theta}_i \end{bmatrix} = \begin{bmatrix} \cos\theta_i & 0 \\ \sin\theta_i & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} v_{L, i} \\ \omega_i \end{bmatrix}
-\end{equation}
-where $v_{L, i}$ is forward longitudinal velocity and $\omega_i$ is angular yaw velocity. Actuation dynamics follow a closed-loop PD heading steering controller paired with alignment-gated longitudinal thrust:
-\begin{align}
-    \Delta \theta_i &= \text{wrap}\big(\text{atan2}(F_{y, i}, F_{x, i}) - \theta_i\big) \\
-    \tau_{\text{yaw}, i} &= \text{clip}\big( K_{\text{yaw}} \Delta \theta_i - D_{\text{yaw}} \omega_i, -\tau_{\max}, \tau_{\max} \big) \\
-    F_{\text{fwd}, i} &= F_{\max} \cdot \max\big(0.0, \cos(\Delta \theta_i)\big) \cdot \mathbb{I}(|\Delta \theta_i| < 0.6\pi)
-\end{align}
-with proportional gain $K_{\text{yaw}} = 4.5$ and derivative damping $D_{\text{yaw}} = 0.60$. Continuous sensory line-of-sight (LOS) is computed via native MuJoCo 3D geometric raycasting (\texttt{mj\_ray}), which determines optical intersections between pursuer sensor mounts and target geometries at $\Delta t = 0.01\text{ s}$ sub-stepping.
+where $v_{L, i}$ and $\omega_i$ are longitudinal and yaw velocities. Planner macro-forces $\mathbf{F}_i$ are tracked via closed-loop PD heading torque $\tau_{\text{yaw}, i} = \text{clip}(K_{\text{yaw}} \Delta\theta_i - D_{\text{yaw}} \omega_i, \pm\tau_{\max})$ and alignment-gated forward thrust $F_{\text{fwd}, i} = F_{\max} \max(0, \cos\Delta\theta_i) \cdot \mathbb{I}(|\Delta\theta_i| < 0.6\pi)$, parameterized by $K_{\text{yaw}}=4.5$ and $D_{\text{yaw}}=0.60$. Continuous sensory line-of-sight (LOS) is evaluated via native 3D geometric raycasting (\texttt{mj\_ray}) at $\Delta t = 0.01\text{ s}$ sub-stepping.
 
 \subsection{Particle Filter Belief Representation}
 Because the evader's true pose $\mathbf{x}_e(t)$ is occluded when out of direct optical line-of-sight ($\text{LOS} = \text{False}$), each agent tracks the posterior belief state through a Sequential Monte Carlo (SMC) particle filter:
