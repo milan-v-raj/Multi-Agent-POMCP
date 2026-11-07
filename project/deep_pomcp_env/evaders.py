@@ -211,3 +211,198 @@ class KeyboardEvader(BaseEvader):
         if norm > 0:
             return (input_vec / norm) * self.max_force
         return np.array([0.0, 0.0])
+
+
+class DeceptiveFeintingEvader(StrategicAdversarialEvader):
+    """
+    Level-2 Theory-of-Mind Deceptive & Voronoi-Minimax Adversarial Evader.
+    Upgrades over `StrategicAdversarialEvader`:
+      1. Occlusion-Edge J-Hook Feinting (Particle Filter Baiting):
+         Tracks when it crosses from visible (`was_visible=True`) into an obstacle's
+         occlusion shadow (`currently_visible=False`). Knowing the hunters' SMC particle
+         filter propagates belief along the last observed velocity vector `v_entry`,
+         it immediately executes a sharp J-hook / velocity reversal (-v_entry or
+         perpendicular shadow tangent) while hidden behind the obstacle.
+      2. Voronoi Pincer-Bisector Breakout:
+         Computes the hunter baseline vector (h_1 - h_0) and boosts escape trajectories
+         along the perpendicular Voronoi bisector to slip out of pincer traps before
+         being pinned against arena boundaries.
+      3. Multi-Horizon Shadow Surfing (24-Ray 3-Stage Probing):
+         Evaluates occlusion persistence across both short (45 px) and long (95 px)
+         lookahead horizons to orbit obstacles and keep walls between itself and hunters.
+    """
+    def __init__(
+        self,
+        max_force: float = 0.50,
+        num_rays: int = 24,
+        ray_dist: float = 48.0,
+        feint_duration: int = 26
+    ):
+        super().__init__(max_force=max_force, num_rays=num_rays, ray_dist=ray_dist)
+        self.feint_duration = feint_duration
+        self.was_visible: bool = False
+        self.feint_timer: int = 0
+        self.last_seen_vel_dir: np.ndarray = np.array([1.0, 0.0], dtype=np.float32)
+        self.feint_preferred_dir: Optional[np.ndarray] = None
+        self.total_feints_triggered: int = 0
+
+    def reset_state(self):
+        self.was_visible = False
+        self.feint_timer = 0
+        self.last_seen_vel_dir = np.array([1.0, 0.0], dtype=np.float32)
+        self.feint_preferred_dir = None
+        self.total_feints_triggered = 0
+
+    def get_action(
+        self,
+        evader_pos: np.ndarray,
+        evader_vel: np.ndarray,
+        hunter_positions: List[np.ndarray],
+        obstacles: List[Obstacle],
+        width: int,
+        height: int
+    ) -> np.ndarray:
+        currently_visible = any(
+            not self._check_los_blocked(evader_pos, h_pos, obstacles)
+            for h_pos in hunter_positions
+        )
+
+        vel_norm = float(np.linalg.norm(evader_vel))
+        if currently_visible:
+            if vel_norm > 1.0:
+                self.last_seen_vel_dir = (evader_vel / vel_norm).astype(np.float32)
+            self.feint_timer = 0
+            self.feint_preferred_dir = None
+        else:
+            # Transitioned from Visible -> Occluded: Trigger J-Hook Deceptive Feint!
+            if self.was_visible and vel_norm > 1.0:
+                self.feint_timer = self.feint_duration
+                self.total_feints_triggered += 1
+                # Choose the J-hook tangent/reversal (-v_entry rotated +/- 135 deg)
+                # that maximizes distance from the nearest hunter while staying occluded
+                v_x, v_y = float(self.last_seen_vel_dir[0]), float(self.last_seen_vel_dir[1])
+                cand_dirs = [
+                    np.array([-v_x, -v_y], dtype=np.float32),
+                    np.array([-v_y,  v_x], dtype=np.float32),
+                    np.array([ v_y, -v_x], dtype=np.float32),
+                ]
+                best_cand = cand_dirs[0]
+                best_cand_score = -1e9
+                for c_dir in cand_dirs:
+                    tp = evader_pos + c_dir * 55.0
+                    if not (25 < tp[0] < width - 25 and 25 < tp[1] < height - 25):
+                        continue
+                    if any(obs.collides_point(tp[0], tp[1], buffer=12.0) for obs in obstacles):
+                        continue
+                    occluded_all = all(
+                        self._check_los_blocked(tp, hp, obstacles) for hp in hunter_positions
+                    )
+                    min_hd = min(float(np.linalg.norm(tp - hp)) for hp in hunter_positions) if hunter_positions else 0.0
+                    c_score = min_hd + (350.0 if occluded_all else 0.0)
+                    if c_score > best_cand_score:
+                        best_cand_score = c_score
+                        best_cand = c_dir
+                self.feint_preferred_dir = best_cand
+            elif self.feint_timer > 0:
+                self.feint_timer -= 1
+
+        self.was_visible = currently_visible
+
+        # Compute Voronoi Pincer-Bisector when 2+ hunters are active
+        voronoi_bisector = None
+        if len(hunter_positions) >= 2:
+            h0, h1 = hunter_positions[0], hunter_positions[1]
+            baseline = h1 - h0
+            base_len = float(np.linalg.norm(baseline))
+            if base_len > 15.0:
+                perp1 = np.array([-baseline[1], baseline[0]], dtype=np.float32) / base_len
+                perp2 = -perp1
+                # Pick the bisector pointing away from arena walls / hunter centroid
+                mid_h = 0.5 * (h0 + h1)
+                from_mid = evader_pos - mid_h
+                voronoi_bisector = perp1 if float(np.dot(perp1, from_mid)) >= 0.0 else perp2
+
+        best_score = -float("inf")
+        best_force = np.array([0.0, 0.0], dtype=np.float32)
+        dists_to_hunters = [
+            float(np.linalg.norm(evader_pos - h_pos)) for h_pos in hunter_positions
+        ] if hunter_positions else [999.0]
+        min_hunter_dist = min(dists_to_hunters)
+
+        for i in range(self.num_rays):
+            angle_deg = (360.0 / self.num_rays) * i
+            rad = math.radians(angle_deg)
+            dir_vec = np.array([math.cos(rad), math.sin(rad)], dtype=np.float32)
+
+            test_pos_1 = evader_pos + dir_vec * self.ray_dist
+            test_pos_2 = evader_pos + dir_vec * (self.ray_dist * 1.95)
+
+            if not (20 < test_pos_1[0] < width - 20 and 20 < test_pos_1[1] < height - 20):
+                continue
+            boundary_penalty = 850.0 if not (20 < test_pos_2[0] < width - 20 and 20 < test_pos_2[1] < height - 20) else 0.0
+
+            obs_penalty = 0.0
+            for obs in obstacles:
+                if obs.collides_point(test_pos_1[0], test_pos_1[1], buffer=12.0):
+                    obs_penalty += 1600.0
+                if obs.collides_point(test_pos_2[0], test_pos_2[1], buffer=9.0):
+                    obs_penalty += 550.0
+            if obs_penalty > 1000.0:
+                continue
+
+            dead_end_penalty = 2200.0 if (
+                self._is_dead_end(test_pos_1, obstacles, width, height)
+                or self._is_dead_end(test_pos_2, obstacles, width, height)
+            ) else 0.0
+
+            hunter_dist_score = 0.0
+            los_broken_bonus = 0.0
+            for h_idx, h_pos in enumerate(hunter_positions):
+                d1 = float(np.linalg.norm(test_pos_1 - h_pos))
+                d2 = float(np.linalg.norm(test_pos_2 - h_pos))
+                d_curr = dists_to_hunters[h_idx]
+                hunter_dist_score += (d1 - d_curr) * 2.4 + (d2 - d_curr) * 0.8 + d1 * 0.45
+
+                if self._check_los_blocked(test_pos_1, h_pos, obstacles):
+                    los_broken_bonus += 240.0
+                if self._check_los_blocked(test_pos_2, h_pos, obstacles):
+                    los_broken_bonus += 140.0
+
+            # Voronoi Pincer-Breakout Bonus when hunters are closing in (< 260 px)
+            voronoi_bonus = 0.0
+            if voronoi_bisector is not None and min_hunter_dist < 260.0:
+                voronoi_bonus = max(0.0, float(np.dot(dir_vec, voronoi_bisector))) * 140.0
+
+            # Deceptive J-Hook Feint Bonus vs. Momentum Alignment
+            feint_bonus = 0.0
+            if self.feint_timer > 0 and not currently_visible:
+                # Penalize continuing along the baited particle filter velocity vector `last_seen_vel_dir`
+                align_with_bait = float(np.dot(dir_vec, self.last_seen_vel_dir))
+                feint_bonus -= align_with_bait * 420.0
+                if self.feint_preferred_dir is not None:
+                    feint_bonus += float(np.dot(dir_vec, self.feint_preferred_dir)) * 380.0
+                momentum_bonus = 0.0
+            else:
+                momentum_bonus = (float(np.dot(evader_vel / vel_norm, dir_vec)) * 28.0) if vel_norm > 1.0 else 0.0
+
+            score = (
+                hunter_dist_score
+                + los_broken_bonus
+                + voronoi_bonus
+                + feint_bonus
+                + momentum_bonus
+                - boundary_penalty
+                - obs_penalty
+                - dead_end_penalty
+            )
+
+            if score > best_score:
+                best_score = score
+                best_force = dir_vec * self.max_force
+
+        if np.linalg.norm(best_force) > 0.01:
+            return best_force
+
+        if vel_norm > 0.1:
+            return (evader_vel / vel_norm) * self.max_force
+        return np.array([self.max_force, 0.0], dtype=np.float32)

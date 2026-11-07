@@ -1,0 +1,49 @@
+policy,preset,episode,seed,captured,steps,evader_feints,bimodal_splits,neg_evidence_prunes
+Reactive A*,u_trap,1,6100,False,1200,2,0,0
+Reactive A*,u_trap,2,6117,False,1200,3,0,0
+Reactive A*,u_trap,3,6134,False,1200,5,0,0
+Reactive A*,dense_maze,1,6100,False,1200,12,0,0
+Reactive A*,dense_maze,2,6117,False,1200,11,0,0
+Reactive A*,dense_maze,3,6134,False,1200,15,0,0
+Reactive A*,bimodal_fork,1,6100,False,1200,0,0,0
+Reactive A*,bimodal_fork,2,6117,False,1200,12,0,0
+Reactive A*,bimodal_fork,3,6134,False,1200,16,0,0
+Reactive A*,figure_8,1,6100,False,1200,12,0,0
+Reactive A*,figure_8,2,6117,False,1200,12,0,0
+Reactive A*,figure_8,3,6134,False,1200,18,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",u_trap,1,6100,True,267,0,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",u_trap,2,6117,False,1200,5,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",u_trap,3,6134,False,1200,1,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",dense_maze,1,6100,True,649,6,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",dense_maze,2,6117,False,1200,9,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",dense_maze,3,6134,True,546,6,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",bimodal_fork,1,6100,False,1200,0,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",bimodal_fork,2,6117,True,354,1,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",bimodal_fork,3,6134,True,404,2,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",figure_8,1,6100,True,337,0,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",figure_8,2,6117,True,785,4,0,0
+"Tree Deep-POMCP (N=20, Unimodal)",figure_8,3,6134,True,243,1,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",u_trap,1,6100,True,267,0,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",u_trap,2,6117,False,1200,5,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",u_trap,3,6134,False,1200,4,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",dense_maze,1,6100,True,344,3,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",dense_maze,2,6117,True,317,2,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",dense_maze,3,6134,True,533,8,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",bimodal_fork,1,6100,False,1200,0,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",bimodal_fork,2,6117,False,1200,9,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",bimodal_fork,3,6134,True,426,1,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",figure_8,1,6100,True,337,0,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",figure_8,2,6117,False,1200,9,0,0
+"ET-DAG-Deep-POMCP (N=20, Unimodal)",figure_8,3,6134,True,535,4,0,0
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",u_trap,1,6100,True,267,0,0,0
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",u_trap,2,6117,True,1006,1,1,0
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",u_trap,3,6134,True,657,1,1,1
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",dense_maze,1,6100,True,344,3,0,1
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",dense_maze,2,6117,True,319,2,1,0
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",dense_maze,3,6134,True,554,7,3,1
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",bimodal_fork,1,6100,False,1200,0,0,0
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",bimodal_fork,2,6117,True,613,5,2,3
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",bimodal_fork,3,6134,True,415,1,1,1
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",figure_8,1,6100,True,337,0,0,0
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",figure_8,2,6117,False,1200,6,4,3
+"CD-ET-DAG-Deep-POMCP (N=20, Counter-Deceptive)",figure_8,3,6134,False,1200,14,4,5

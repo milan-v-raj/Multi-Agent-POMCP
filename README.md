@@ -24,6 +24,7 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 5. **Epistemic Causal Mechanism Discovery (`causal_switch_pomdp`)**: Places $K=3$ unlabelled candidate pressure plates in the arena where only one latent switch $\kappa^* \in \{0, 1, 2\}$ physically operates the door. Agents maintain a dual belief (continuous evader particle cloud $\mathcal{B}_e$ + categorical causal belief $\mathbf{b}_\kappa \in \Delta^K$), prune non-functional switches via Bayesian negative evidence, and coordinate sacrifice (**100.0% Win Rate** for Causal Mac-POMCP; **90.0% Zero-Shot Win Rate** for frozen Deep Causal Mac-POMCP).
 6. **Latent Belief-Graph MCTS via PointNet Transposition Merging (`DAG-Deep-POMCP`)**: Replaces the exponential action-observation history tree with a Directed Acyclic Belief Graph (DAG) using the 128-D PointNet embedding $\mathbf{z} = \phi(\mathcal{B}_t)$ as an $\mathcal{O}(1)$ locality-sensitive belief hash (**$13.5\times\text{--}19.3\times$ faster** than 200-particle Sinkhorn Optimal Transport across candidate buckets). Merges up to **34.3%** of transposed search states (`depth >= 2`) and boosts low-budget ($N_{\text{sims}}=20$) adversarial capture win rate from **50.0% to 75.0% (+25.0%)** in a strictly controlled single-variable ablation.
 7. **Information-Theoretic Event-Triggered MCTS (ET-MCTS)**: Triggers replanning only on significant entropy flux, line-of-sight edges, or path invalidation, pruning search invocations by **39.3%** and reducing decision latency to sub-millisecond regimes (**4.67 ms**).
+8. **Level-2 Theory-of-Mind Deception & Counter-Deceptive Belief Bifurcation (`CD-ET-DAG-Deep-POMCP`)**: Evaluated against an intelligent `DeceptiveFeintingEvader` performing active occlusion J-hook baiting and Voronoi pincer breakouts. The planner falsifies naive linear-momentum hypotheses through Bayesian negative visual evidence (clear LOS yet unspotted) and bifurcates the 200-particle cloud into a bimodal PointNet representation, splitting pursuers to cover momentum and ambush occluded J-hooks (**75.0% Win Rate** vs. **0.0% for Reactive A\*** and **58.3% for unimodal ET-DAG**).
 
 ---
 
@@ -68,6 +69,14 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | **`ET-DAG-Deep-POMCP` ($N=20$, Unified, Ours)** | **83.3%** | **515.5** | **60.7** | **1213.3 (-67.7%)** | **3.47 ms** | **2.09 / 3.48** | **11.1%** |
 | **Tree Deep-POMCP ($N=60$, Periodic)** | 66.7% | 341.4 | 62.7 | 3760.0 | 12.33 ms | 3.32 / 5.20 | 0.0% |
 | **`DAG-Deep-POMCP` ($N=60$, Periodic, Ours)** | 66.7% | 392.4 | 67.2 | 4035.0 | 12.73 ms | 3.42 / 5.37 | 20.7% |
+
+### 4. Level-2 Adversarial Deception Benchmark (`DeceptiveFeintingEvader`)
+| Policy | Win Rate (%) | Mean TTC (steps) | Evader Feints / Ep | Bimodal Splits / Ep | Neg-Evidence Prunes / Ep |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Reactive A\* (Centroid Greedy)** | 0.0% | Timeout (1200.0) | 9.8 | 0.0 | 0.0 |
+| **Tree Deep-POMCP ($N=20$, Unimodal)** | 66.7% | 448.1 | 2.9 | 0.0 | 0.0 |
+| **`ET-DAG-Deep-POMCP` ($N=20$, Unimodal)** | 58.3% | 394.1 | 3.8 | 0.0 | 0.0 |
+| **`CD-ET-DAG-Deep-POMCP` ($N=20$, Counter-Deceptive, Ours)** | **75.0% (+16.7%)** | 501.3 | 3.3 | **1.4** | **1.2** |
 
 ---
 

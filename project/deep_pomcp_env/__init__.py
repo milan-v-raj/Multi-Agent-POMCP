@@ -4,7 +4,7 @@ Deep-POMCP Multi-Agent Pursuit-Evasion Benchmark Environment Package.
 
 from typing import Optional
 from .scenarios import Obstacle, ScenarioConfig, ScenarioGenerator
-from .evaders import BaseEvader, SmartRaycastEvader, RandomEvader, KeyboardEvader, StrategicAdversarialEvader
+from .evaders import BaseEvader, SmartRaycastEvader, RandomEvader, KeyboardEvader, StrategicAdversarialEvader, DeceptiveFeintingEvader
 from .stats_logger import StatsLogger, EpisodeStats
 from .pathfinder import Pathfinder
 from .core_env import PursuitEvasionEnv
@@ -34,6 +34,7 @@ __all__ = [
     "BaseEvader",
     "SmartRaycastEvader",
     "StrategicAdversarialEvader",
+    "DeceptiveFeintingEvader",
     "RandomEvader",
     "KeyboardEvader",
     "StatsLogger",

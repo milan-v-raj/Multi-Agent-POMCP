@@ -246,6 +246,7 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         pincer_dist: float = 200.0,
         enable_dag_merging: bool = True,
         enable_event_trigger: bool = False,
+        enable_counter_deception: bool = False,
         pos_merge_threshold: float = 16.0,
         cosine_merge_threshold: float = 0.015,
         sub_particles: int = 64,
@@ -280,6 +281,7 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.pincer_dist = pincer_dist
         self.enable_dag_merging = enable_dag_merging
         self.enable_event_trigger = enable_event_trigger
+        self.enable_counter_deception = enable_counter_deception
         self.pos_merge_threshold = pos_merge_threshold
         self.cosine_merge_threshold = cosine_merge_threshold
         self.sub_particles = sub_particles
@@ -308,6 +310,12 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self._last_planned_spread: Dict[int, float] = {}
         self._last_planned_los: Dict[int, bool] = {}
         self._last_planned_b_mean: Dict[int, np.ndarray] = {}
+        self._occlusion_anchor_pos: Optional[np.ndarray] = None
+        self._occlusion_anchor_vel: np.ndarray = np.array([1.0, 0.0], dtype=np.float32)
+        self._occluded_steps: int = 0
+        self._momentum_mode_falsified: bool = False
+        self.negative_evidence_prunes: int = 0
+        self.bimodal_splits_triggered: int = 0
         self.total_mcts_calls: int = 0
         self.total_simulations_run: int = 0
         self.event_trigger_counts: Dict[str, int] = {
@@ -330,11 +338,136 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self._last_planned_spread.clear()
         self._last_planned_los.clear()
         self._last_planned_b_mean.clear()
+        self._occlusion_anchor_pos = None
+        self._occlusion_anchor_vel = np.array([1.0, 0.0], dtype=np.float32)
+        self._occluded_steps = 0
+        self._momentum_mode_falsified = False
+        self.negative_evidence_prunes = 0
+        self.bimodal_splits_triggered = 0
         self.total_mcts_calls = 0
         self.total_simulations_run = 0
         for k in self.event_trigger_counts:
             self.event_trigger_counts[k] = 0
         self.telemetry_history.clear()
+
+    def _has_clear_los(self, p1: np.ndarray, p2: np.ndarray, obstacles: List[Obstacle]) -> bool:
+        x1, y1 = float(p1[0]), float(p1[1])
+        x2, y2 = float(p2[0]), float(p2[1])
+        for obs_r in obstacles:
+            if obs_r.collides_line(x1, y1, x2, y2):
+                return False
+        return True
+
+    def _compute_counter_deceptive_belief(
+        self,
+        agent_id: int,
+        hunter_positions: np.ndarray,
+        b_mean: np.ndarray,
+        particles: Optional[np.ndarray],
+        can_see: bool,
+        obstacles: List[Obstacle],
+        width: int,
+        height: int
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Level-2 Counter-Deceptive Bimodal Belief Filter & Negative-Sighting Culling:
+        1. When `can_see == True`, records the last observed occlusion-entry anchor
+           (`_occlusion_anchor_pos`, `_occlusion_anchor_vel`).
+        2. When `can_see == False`, checks if the standard momentum belief `b_mean` (Mode 0)
+           is inside any hunter's unobstructed Line-of-Sight. If a hunter has clear LOS to
+           `b_mean` yet `can_see == False`, Mode 0 is falsified by Bayesian negative evidence!
+        3. Synthesizes Mode 1 (`feint_pt`): the occluded J-hook reversal hypothesis behind the
+           blocking obstacle. Before Mode 0 is falsified, one hunter covers Mode 0 while the
+           other flanks Mode 1 using a bimodal 200-particle cloud; once Mode 0 is falsified,
+           both hunters collapse their belief onto Mode 1.
+        """
+        if can_see:
+            self._occlusion_anchor_pos = b_mean.copy()
+            if particles is not None and len(particles) > 0:
+                v_est = np.mean(particles[:, 2:4], axis=0) * 7.0
+                if np.linalg.norm(v_est) > 0.5:
+                    self._occlusion_anchor_vel = v_est.astype(np.float32)
+            self._occluded_steps = 0
+            self._momentum_mode_falsified = False
+            return b_mean, particles
+
+        if agent_id == 0:
+            self._occluded_steps += 1
+
+        if self._occlusion_anchor_pos is None or self._occluded_steps < 18 or self._occluded_steps > 85:
+            return b_mean, particles
+
+        # 1. Check whether Mode 0 (`b_mean`) is falsified by boundary clamp / close visual sweep
+        #    OR whether occlusion has persisted past the 36-step J-hook threshold:
+        if not self._momentum_mode_falsified:
+            in_boundary_clamp = not (18.0 < b_mean[0] < width - 18.0 and 18.0 < b_mean[1] < height - 18.0)
+            close_sweep_falsified = any(
+                float(np.linalg.norm(hp - b_mean)) < 75.0 and self._has_clear_los(hp, b_mean, obstacles)
+                for hp in hunter_positions
+            )
+            if in_boundary_clamp or close_sweep_falsified:
+                self._momentum_mode_falsified = True
+                self.negative_evidence_prunes += 1
+
+        if not self._momentum_mode_falsified and self._occluded_steps < 36:
+            return b_mean, particles
+
+        if agent_id == 0 and self._occluded_steps == 36:
+            self.bimodal_splits_triggered += 1
+
+        # 2. Construct Mode 1 (Occluded J-Hook Reversal Hypothesis around `_occlusion_anchor_pos`)
+        v_norm = float(np.linalg.norm(self._occlusion_anchor_vel))
+        v_dir = (self._occlusion_anchor_vel / v_norm) if v_norm > 0.1 else np.array([1.0, 0.0], dtype=np.float32)
+        vx, vy = float(v_dir[0]), float(v_dir[1])
+
+        hook_dirs = [
+            np.array([-vx, -vy], dtype=np.float32),
+            np.array([-vy,  vx], dtype=np.float32),
+            np.array([ vy, -vx], dtype=np.float32),
+            np.array([-0.7 * vx - 0.7 * vy, -0.7 * vy + 0.7 * vx], dtype=np.float32),
+            np.array([-0.7 * vx + 0.7 * vy, -0.7 * vy - 0.7 * vx], dtype=np.float32),
+        ]
+        hook_radius = min(195.0, 55.0 + self._occluded_steps * 2.0)
+
+        scored_hooks = []
+        for hd in hook_dirs:
+            raw_cand = self._occlusion_anchor_pos + hd * hook_radius
+            raw_cand[0] = np.clip(raw_cand[0], 35.0, width - 35.0)
+            raw_cand[1] = np.clip(raw_cand[1], 35.0, height - 35.0)
+            cand_pt = self.pathfinder.get_nearest_walkable(raw_cand)
+
+            # Check if `cand_pt` is genuinely hidden from all hunters (valid occlusion shadow!)
+            is_occluded = all(not self._has_clear_los(hp, cand_pt, obstacles) for hp in hunter_positions)
+            sep_from_mode0 = float(np.linalg.norm(cand_pt - b_mean))
+            score = sep_from_mode0 + (400.0 if is_occluded else -300.0)
+            scored_hooks.append((score, cand_pt))
+
+        scored_hooks.sort(key=lambda x: x[0], reverse=True)
+        feint_pt_1 = scored_hooks[0][1]
+
+        # 3. Build Bimodal Particle Cloud (Mode 0 + Mode 1) & Split Trailing Hunter to Ambush `feint_pt_1`
+        bimodal_particles = np.zeros((200, 4), dtype=np.float32)
+        w_f, h_f = float(width), float(height)
+        feint_vel_norm = (-v_dir * 0.75).astype(np.float32)
+        other_id = 1 if agent_id == 0 else 0
+
+        if particles is not None and len(particles) == 200:
+            bimodal_particles[:100] = particles[:100]
+        else:
+            bimodal_particles[:100, 0] = np.clip(b_mean[0] / w_f, 0.02, 0.98)
+            bimodal_particles[:100, 1] = np.clip(b_mean[1] / h_f, 0.02, 0.98)
+            bimodal_particles[:100, 2] = v_dir[0] * 0.75
+            bimodal_particles[:100, 3] = v_dir[1] * 0.75
+
+        bimodal_particles[100:, 0] = np.clip(feint_pt_1[0] / w_f, 0.02, 0.98)
+        bimodal_particles[100:, 1] = np.clip(feint_pt_1[1] / h_f, 0.02, 0.98)
+        bimodal_particles[100:, 2] = feint_vel_norm[0]
+        bimodal_particles[100:, 3] = feint_vel_norm[1]
+
+        d_self_m0 = float(np.linalg.norm(hunter_positions[agent_id] - b_mean))
+        d_other_m0 = float(np.linalg.norm(hunter_positions[other_id] - b_mean))
+        assigned_mean = b_mean if d_self_m0 <= d_other_m0 else feint_pt_1
+        return assigned_mean, bimodal_particles
 
     def _evaluate_event_trigger(
         self,
@@ -366,6 +499,10 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
 
         prev_los = self._last_planned_los.get(agent_id, not can_see)
         if can_see != prev_los:
+            return True, "LOS_TRANSITION"
+
+        # Under active counter-deception, never suppress MCTS during the J-hook feint window (<= 65 occluded steps)
+        if self.enable_counter_deception and not can_see and self._occluded_steps <= 65:
             return True, "LOS_TRANSITION"
 
         for pt in path[:3]:
@@ -513,6 +650,12 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
 
         if not is_holding_switch:
             if is_active:
+                if self.enable_counter_deception:
+                    b_mean, particles = self._compute_counter_deceptive_belief(
+                        agent_id, info["hunter_positions"], b_mean, particles,
+                        can_see, obstacles, width, height
+                    )
+
                 if self.enable_event_trigger:
                     should_replan, trigger_reason = self._evaluate_event_trigger(
                         agent_id, h_pos, b_mean, b_spread, can_see, obstacles, step, plan_offset
