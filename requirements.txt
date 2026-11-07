@@ -4,3 +4,5 @@ gymnasium>=0.28.0
 pygame>=2.5.0
 matplotlib>=3.7.0
 scipy>=1.10.0
+mujoco>=4.0.0
+pillow>=10.0.0

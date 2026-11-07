@@ -8,6 +8,7 @@ from .evaders import BaseEvader, SmartRaycastEvader, RandomEvader, KeyboardEvade
 from .stats_logger import StatsLogger, EpisodeStats
 from .pathfinder import Pathfinder
 from .core_env import PursuitEvasionEnv
+from .mujoco_env import MujocoPursuitEvasionEnv
 
 def make_env(density_preset: str = "dense_maze",
              num_hunters: int = 2,
@@ -26,8 +27,32 @@ def make_env(density_preset: str = "dense_maze",
     )
     return PursuitEvasionEnv(config=config, evader_policy=evader_policy, render_mode=render_mode)
 
+def make_mujoco_env(density_preset: str = "dense_maze",
+                    num_hunters: int = 2,
+                    evader_speed_mult: float = 1.0,
+                    evader_policy: Optional[BaseEvader] = None,
+                    render_mode: str = None,
+                    seed: int = None,
+                    max_steps: int = 1500,
+                    physics_substeps: int = 5) -> MujocoPursuitEvasionEnv:
+    """Factory helper to quickly construct configured MuJoCo continuous physics environments."""
+    config = ScenarioConfig(
+        density_preset=density_preset,
+        num_hunters=num_hunters,
+        evader_speed_mult=evader_speed_mult,
+        max_steps=max_steps,
+        seed=seed
+    )
+    return MujocoPursuitEvasionEnv(
+        config=config,
+        evader_policy=evader_policy,
+        render_mode=render_mode,
+        physics_substeps=physics_substeps
+    )
+
 __all__ = [
     "PursuitEvasionEnv",
+    "MujocoPursuitEvasionEnv",
     "ScenarioConfig",
     "ScenarioGenerator",
     "Obstacle",
@@ -39,5 +64,6 @@ __all__ = [
     "KeyboardEvader",
     "StatsLogger",
     "EpisodeStats",
-    "make_env"
+    "make_env",
+    "make_mujoco_env"
 ]

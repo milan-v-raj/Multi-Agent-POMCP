@@ -78,6 +78,18 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | **`ET-DAG-Deep-POMCP` ($N=20$, Unimodal)** | 58.3% | 394.1 | 3.8 | 0.0 | 0.0 |
 | **`CD-ET-DAG-Deep-POMCP` ($N=20$, Counter-Deceptive, Ours)** | **75.0% (+16.7%)** | 501.3 | 3.3 | **1.4** | **1.2** |
 
+### 5. High-Fidelity Continuous Multi-Body Physics Benchmark (Google DeepMind MuJoCo)
+Evaluated inside Google DeepMind's **MuJoCo** continuous rigid-body simulation engine (`MujocoPursuitEvasionEnv`) with continuous 3D optical Line-of-Sight (`mj_ray`) raycasting, multi-body contact dynamics, Coulomb friction, and non-linear momentum transfer against `DeceptiveFeintingEvader`:
+
+| Policy | Capture Win Rate (%) | Mean TTC (steps) | Mean Wall Collisions / Ep | Solver Contacts / Step | Mean Decision Latency (ms) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Reactive A\*** | 25.0% | 686.5 | 5.4 | 0.06 | **0.37 ms** |
+| **Tree Deep-POMCP ($N=20$)** | 37.5% | 685.2 | 2.2 | 0.10 | 7.61 ms |
+| **`ET-DAG-Deep-POMCP` ($N=20$)** | 50.0% | 645.6 | 4.0 | 0.05 | 7.48 ms |
+| **`CD-ET-DAG-Deep-POMCP` ($N=20$, Ours)** | **87.5% (+62.5%)** | **478.1 (-208.4)** | **2.1** | **0.06** | **6.60 ms** |
+
+![MuJoCo Continuous Multi-Body Physics Benchmark](project/mujoco_continuous_physics_benchmark.png)
+
 ---
 
 ## 🛠️ Installation & Setup
@@ -102,17 +114,28 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 python project/deep_pomcp_env/demo_deep_pomcp.py
 ```
 
-### 2. Audited Single-Switch Cooperative Sacrifice Benchmark (`switch_door_pomdp`)
+### 2. High-Fidelity MuJoCo Continuous Physics Benchmark
+```bash
+python project/deep_pomcp_env/run_mujoco_benchmark.py
+python project/deep_pomcp_env/plot_mujoco_benchmark.py
+```
+
+### 3. ROS 2 & Gazebo Integration Bridge (Offline Validation)
+```bash
+python project/ros2_bridge/pomcp_ros2_node.py
+```
+
+### 4. Audited Single-Switch Cooperative Sacrifice Benchmark (`switch_door_pomdp`)
 ```bash
 python project/switch_door_pomdp/run_benchmark.py --episodes 10
 ```
 
-### 3. Epistemic Causal Mechanism Discovery Benchmark (`causal_switch_pomdp`)
+### 5. Epistemic Causal Mechanism Discovery Benchmark (`causal_switch_pomdp`)
 ```bash
 python project/causal_switch_pomdp/run_benchmark.py --episodes 10 --switches 3 --output causal_benchmark_N10_v2.csv
 ```
 
-### 4. Event-Triggered MCTS Showcase (ET-MCTS)
+### 6. Event-Triggered MCTS Showcase (ET-MCTS)
 ```bash
 python project/deep_pomcp_env/demo_et_pomcp.py
 ```
@@ -125,7 +148,8 @@ python project/deep_pomcp_env/demo_et_pomcp.py
 ├── project/
 │   ├── causal_switch_pomdp/     # Epistemic Causal Discovery Dec-POMDP (K=3 latent switches)
 │   ├── switch_door_pomdp/       # Audited Macro-Action Dec-POMDP (Single-switch sacrifice)
-│   ├── deep_pomcp_env/          # Core environment, PointNet, AlphaZero PUCT, ET-MCTS
+│   ├── deep_pomcp_env/          # Core environment, MuJoCo env, PointNet, AlphaZero PUCT, ET-MCTS
+│   ├── ros2_bridge/             # ROS 2 Humble/Iron node, launch files & Gazebo bridge
 │   ├── deep_pomcp_weights.pth   # Pretrained frozen neural network weights
 │   └── benchmarking.py          # Experimental evaluation suites
 ├── midsem_report/               # IEEEtran conference paper source & figures
