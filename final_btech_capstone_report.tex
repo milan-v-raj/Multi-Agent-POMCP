@@ -587,32 +587,35 @@ This formulation isolates past path rewards from downstream value estimation.
 \caption{Latent Belief-Graph POMCP (DAG-MCTS)}
 \label{alg:dag_mcts}
 \begin{algorithmic}[1]
-\REQUIRE Root belief $\mathcal{B}_t$, budget $N_{\text{sims}}$, depth horizon $D=6$
+\REQUIRE Root belief $\mathcal{B}_t$, simulation budget $N_{\text{sims}}$, horizon $D=6$
 \STATE Initialize transposition hash table $\mathcal{T}_{\text{DAG}} \leftarrow \emptyset$
-\FOR{$k = 1$ to $N_{\text{sims}}$}
-    \STATE Sample state $\mathbf{s}_0 \sim \mathcal{B}_t$, set $u \leftarrow \text{root}$, $d \leftarrow 0$, path $\mathcal{P} \leftarrow []$
-    \WHILE{$d < D$ \textbf{and} NOT Terminal($u$)}
-        \STATE $a \leftarrow \arg\max_{a'} \big[ Q_{\text{DAG}}(u, a') + c_{\text{puct}} \mathbf{P}_\theta(u, a') \frac{\sqrt{\sum_b N(u,b)}}{1 + N(u, a')} \big]$
-        \STATE Step continuous simulator: $\mathbf{s}' \sim \mathcal{T}(\mathbf{s}, a)$, $r \leftarrow \mathcal{R}(\mathbf{s}, a)$
-        \STATE Compute key: $K \leftarrow \big( \sum_{t=0}^d \mathbf{a}_t, \lfloor \mathbf{p} / \tau_{\text{pos}} \rceil, \mathbf{z}_{\text{belief}} \big)$
-        \IF{$\exists w \in \mathcal{T}_{\text{DAG}}$ with $K \approx K(w) \land 1 - \mathbf{z} \cdot \mathbf{z}_w \le 0.015$}
+\FOR{$k = 1$ \TO $N_{\text{sims}}$}
+    \STATE Sample state $\mathbf{s} \sim \mathcal{B}_t$; set $u \leftarrow \text{root}$, $d \leftarrow 0$, path $\mathcal{P} \leftarrow []$
+    \WHILE{$d < D$ \textbf{and} $u$ is non-terminal}
+        \STATE \COMMENT{\textit{1. Selection via PUCT}}
+        \STATE $a \leftarrow \arg\max_{a'} \big[ Q_{\text{DAG}}(u, a') + c_{\text{puct}} \mathbf{P}_\theta(u, a') \frac{\sqrt{\sum_b N(u, b)}}{1 + N(u, a')} \big]$
+        \STATE Step continuous simulator: $\mathbf{s}' \sim \mathcal{T}(\mathbf{s}, a)$, reward $r \leftarrow \mathcal{R}(\mathbf{s}, a)$
+        \STATE \COMMENT{\textit{2. Expansion \& Transposition Merging}}
+        \STATE Compute integer impulse multiset \& position bucket $K \leftarrow (\sum_{t=0}^d \mathbf{a}_t, \lfloor \mathbf{p} / \tau_{\text{pos}} \rceil)$
+        \STATE $\mathbf{z} \leftarrow \text{PointNet}(\mathcal{B}')$ \COMMENT{Permutation-invariant belief embedding}
+        \IF{$\exists w \in \mathcal{T}_{\text{DAG}}[K]$ \textbf{with} $1 - \mathbf{z}^\top \mathbf{z}_w \le 0.015$}
             \STATE $v \leftarrow w$ \COMMENT{Merge commutative transposition into DAG}
         \ELSE
-            \STATE Allocate DAG node $v$, store key $(K, v) \to \mathcal{T}_{\text{DAG}}$
+            \STATE Allocate node $v$; $\mathcal{T}_{\text{DAG}}[K] \leftarrow v$
         \ENDIF
-        \STATE Record edge transition: $\mathcal{P}\text{.append}\big((u, a, r, v)\big)$
-        \STATE $u \leftarrow v$, $d \leftarrow d + 1$
+        \STATE Append edge $(u, a, r, v)$ to $\mathcal{P}$; set $u \leftarrow v, d \leftarrow d + 1$
     \ENDWHILE
-    \STATE Evaluate leaf return: $v_{\text{leaf}} \leftarrow V_\phi(u)$
-    \FOR{each $(u, a, r, v) \in \text{reversed}(\mathcal{P})$}
-        \STATE $N(v) \leftarrow N(v) + 1$, $V(v) \leftarrow V(v) + \frac{v_{\text{leaf}} - V(v)}{N(v)}$
-        \STATE $N(u, a) \leftarrow N(u, a) + 1$
-        \STATE $Q_{\text{direct}}(u, a) \leftarrow Q_{\text{direct}}(u, a) + \frac{(r + \gamma v_{\text{leaf}}) - Q_{\text{direct}}(u, a)}{N(u, a)}$
+    \STATE \COMMENT{\textit{3. Truncated Neural Evaluation (No Rollouts)}}
+    \STATE $v_{\text{leaf}} \leftarrow V_\phi(u)$
+    \STATE \COMMENT{\textit{4. DAG Bellman Backup}}
+    \FORALL{$(u, a, r, v) \in \text{reversed}(\mathcal{P})$}
+        \STATE $N(v) \leftarrow N(v) + 1, \quad N(u, a) \leftarrow N(u, a) + 1$
+        \STATE $V(v) \leftarrow V(v) + \frac{v_{\text{leaf}} - V(v)}{N(v)}$
         \STATE $Q_{\text{DAG}}(u, a) \leftarrow (1 - \lambda) Q_{\text{direct}}(u, a) + \lambda \big(r + \gamma V(v)\big)$
         \STATE $v_{\text{leaf}} \leftarrow r + \gamma v_{\text{leaf}}$
     \ENDFOR
 \ENDFOR
-\RETURN $a^* = \arg\max_a N(\text{root}, a)$
+\RETURN Optimal action $a^* = \arg\max_a N(\text{root}, a)$
 \end{algorithmic}
 \end{algorithm}
 
