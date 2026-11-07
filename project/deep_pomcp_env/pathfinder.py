@@ -65,7 +65,13 @@ class Pathfinder:
                     queue.append(neighbor)
         return pos
 
-    def find_path(self, start_pos: np.ndarray, end_pos: np.ndarray) -> List[np.ndarray]:
+    def find_path(
+        self,
+        start_pos: np.ndarray,
+        end_pos: np.ndarray,
+        avoid_positions: Optional[List[np.ndarray]] = None,
+        avoid_radius: float = 45.0
+    ) -> List[np.ndarray]:
         start_node = self.get_grid_pos(self.get_nearest_walkable(start_pos))
         end_node = self.get_grid_pos(self.get_nearest_walkable(end_pos))
 
@@ -73,10 +79,10 @@ class Pathfinder:
             return [end_pos]
 
         open_set = []
-        heapq.heappush(open_set, (0, start_node))
+        heapq.heappush(open_set, (0.0, start_node))
         came_from = {}
-        g_score = {start_node: 0}
-        f_score = {start_node: abs(end_node[0] - start_node[0]) + abs(end_node[1] - start_node[1])}
+        g_score = {start_node: 0.0}
+        f_score = {start_node: float(abs(end_node[0] - start_node[0]) + abs(end_node[1] - start_node[1]))}
 
         while open_set:
             current = heapq.heappop(open_set)[1]
@@ -88,11 +94,20 @@ class Pathfinder:
                 if not self.is_walkable(neighbor):
                     continue
 
-                tentative_g = g_score[current] + 1
+                step_cost = 1.0
+                if avoid_positions:
+                    n_world = self.get_world_pos(neighbor)
+                    for ap in avoid_positions:
+                        if ap is not None:
+                            d_ap = float(np.linalg.norm(n_world - ap))
+                            if d_ap < avoid_radius:
+                                step_cost += (avoid_radius - d_ap) / 5.0
+
+                tentative_g = g_score[current] + step_cost
                 if neighbor not in g_score or tentative_g < g_score[neighbor]:
                     came_from[neighbor] = current
                     g_score[neighbor] = tentative_g
-                    f = tentative_g + abs(end_node[0] - neighbor[0]) + abs(end_node[1] - neighbor[1])
+                    f = tentative_g + float(abs(end_node[0] - neighbor[0]) + abs(end_node[1] - neighbor[1]))
                     f_score[neighbor] = f
                     heapq.heappush(open_set, (f, neighbor))
 

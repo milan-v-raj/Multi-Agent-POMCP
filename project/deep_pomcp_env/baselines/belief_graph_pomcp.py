@@ -247,6 +247,7 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         enable_dag_merging: bool = True,
         enable_event_trigger: bool = False,
         enable_counter_deception: bool = False,
+        enable_intention_sharing: bool = False,
         pos_merge_threshold: float = 16.0,
         cosine_merge_threshold: float = 0.015,
         sub_particles: int = 64,
@@ -282,6 +283,7 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.enable_dag_merging = enable_dag_merging
         self.enable_event_trigger = enable_event_trigger
         self.enable_counter_deception = enable_counter_deception
+        self.enable_intention_sharing = enable_intention_sharing
         self.pos_merge_threshold = pos_merge_threshold
         self.cosine_merge_threshold = cosine_merge_threshold
         self.sub_particles = sub_particles
@@ -304,6 +306,11 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.current_paths: Dict[int, List[np.ndarray]] = {}
         self.final_targets: Dict[int, np.ndarray] = {}
         self._blind_steps: Dict[int, int] = {}
+
+        # Intention Sharing Telemetry & Communication Bus
+        self.shared_intentions: Dict[int, Dict[str, Any]] = {}
+        self.intention_flank_bonuses_applied: int = 0
+        self.intention_clash_penalties_applied: int = 0
 
         # Event-Triggered & Graph Search Telemetry
         self._last_plan_step: Dict[int, int] = {}
@@ -346,6 +353,9 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         self.bimodal_splits_triggered = 0
         self.total_mcts_calls = 0
         self.total_simulations_run = 0
+        self.shared_intentions.clear()
+        self.intention_flank_bonuses_applied = 0
+        self.intention_clash_penalties_applied = 0
         for k in self.event_trigger_counts:
             self.event_trigger_counts[k] = 0
         self.telemetry_history.clear()
@@ -681,12 +691,16 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                     other_id = 1 if agent_id == 0 else 0
                     ally_pos = info["hunter_positions"][other_id]
                     ally_tgt = self.final_targets.get(other_id, None)
+                    partner_intention = self.shared_intentions.get(other_id, None) if self.enable_intention_sharing else None
+                    if ally_tgt is None and partner_intention is not None:
+                        ally_tgt = partner_intention.get("waypoint", None)
 
                     strategic_dir = self._run_belief_graph_mcts(
                         obs, h_pos, h_vel, ally_pos, b_mean,
                         width, height, ally_tgt,
                         particles=particles, n_sims=n_sims,
-                        obstacles=obstacles
+                        obstacles=obstacles,
+                        partner_intention=partner_intention
                     )
 
                     ignore_mcts = False
@@ -704,6 +718,15 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                         final_target = self.pathfinder.get_nearest_walkable(raw_target)
                         self.final_targets[agent_id] = final_target
 
+                        if self.enable_intention_sharing:
+                            heading_dir = (strategic_dir / mcts_len).astype(np.float32)
+                            self.shared_intentions[agent_id] = {
+                                "waypoint": np.copy(final_target),
+                                "heading": heading_dir,
+                                "commit_step": step,
+                                "target_belief": np.copy(b_mean)
+                            }
+
                         should_update = False
                         if not self.current_paths[agent_id]:
                             should_update = True
@@ -713,7 +736,12 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                                 should_update = True
 
                         if should_update:
-                            new_path = self.pathfinder.find_path(h_pos, final_target)
+                            avoid_pts = None
+                            if self.enable_intention_sharing and partner_intention is not None:
+                                p_wp = partner_intention.get("waypoint", None)
+                                if p_wp is not None and np.linalg.norm(final_target - p_wp) > 70.0:
+                                    avoid_pts = [p_wp]
+                            new_path = self.pathfinder.find_path(h_pos, final_target, avoid_positions=avoid_pts)
                             if new_path:
                                 self.current_paths[agent_id] = new_path
                 elif trigger_reason == "IDLE_SUPPRESSED":
@@ -731,14 +759,39 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                     patrol_pt = np.array([np.random.uniform(width * 0.4, width - 60),
                                           np.random.uniform(height * 0.55, height - 60)])
                 walkable_target = self.pathfinder.get_nearest_walkable(patrol_pt)
-                new_path = self.pathfinder.find_path(h_pos, walkable_target)
+                self.final_targets[agent_id] = walkable_target
+                if self.enable_intention_sharing:
+                    patrol_dir = walkable_target - h_pos
+                    p_norm = float(np.linalg.norm(patrol_dir))
+                    h_dir = (patrol_dir / p_norm).astype(np.float32) if p_norm > 0 else np.array([1.0, 0.0], dtype=np.float32)
+                    self.shared_intentions[agent_id] = {
+                        "waypoint": np.copy(walkable_target),
+                        "heading": h_dir,
+                        "commit_step": step,
+                        "target_belief": np.copy(walkable_target)
+                    }
+                avoid_pts = None
+                if self.enable_intention_sharing:
+                    other_id = 1 if agent_id == 0 else 0
+                    p_intent = self.shared_intentions.get(other_id, None)
+                    if p_intent is not None and p_intent.get("waypoint") is not None:
+                        avoid_pts = [p_intent["waypoint"]]
+                new_path = self.pathfinder.find_path(h_pos, walkable_target, avoid_positions=avoid_pts)
                 if new_path:
                     self.current_paths[agent_id] = new_path
 
         if not self.current_paths[agent_id]:
+            avoid_pts = None
+            if self.enable_intention_sharing:
+                other_id = 1 if agent_id == 0 else 0
+                partner_intention = self.shared_intentions.get(other_id, None)
+                if partner_intention is not None:
+                    p_wp = partner_intention.get("waypoint", None)
+                    if p_wp is not None and is_active and np.linalg.norm(b_mean - p_wp) > 70.0:
+                        avoid_pts = [p_wp]
             if is_active:
                 walkable_mean = self.pathfinder.get_nearest_walkable(b_mean)
-                new_path = self.pathfinder.find_path(h_pos, walkable_mean)
+                new_path = self.pathfinder.find_path(h_pos, walkable_mean, avoid_positions=avoid_pts)
                 if new_path:
                     self.current_paths[agent_id] = new_path
             else:
@@ -788,13 +841,18 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
         ally_target: Optional[np.ndarray] = None,
         particles: Optional[np.ndarray] = None,
         n_sims: Optional[int] = None,
-        obstacles: Optional[List[Obstacle]] = None
+        obstacles: Optional[List[Obstacle]] = None,
+        partner_intention: Optional[Dict[str, Any]] = None
     ) -> np.ndarray:
         if n_sims is None:
             n_sims = self.num_simulations
 
         self.total_mcts_calls += 1
         self.total_simulations_run += int(n_sims)
+
+        p_wp = partner_intention.get("waypoint", None) if partner_intention else None
+        if ally_target is None and p_wp is not None:
+            ally_target = p_wp
 
         kinematics_tensor = torch.FloatTensor(obs[0:8]).unsqueeze(0)
         local_grid_tensor = torch.FloatTensor(obs[15:136]).unsqueeze(0)
@@ -871,7 +929,31 @@ class BeliefGraphDeepPOMCPPolicy(BasePursuerPolicy):
                         if obs_rect.collides_point(state.h_pos[0], state.h_pos[1], buffer=6.0):
                             obs_penalty = -8.0
                             break
-                step_r = r + step_progress + obs_penalty
+
+                intention_reward = 0.0
+                if partner_intention is not None and p_wp is not None:
+                    # 1. Anti-Clustering Path / Corridor Collision Penalty
+                    # Active only during corridor transit; suppressed in terminal capture zone (< 75 px of evader)
+                    d_partner_evader = float(np.linalg.norm(p_wp - state.i_pos))
+                    d_intent = float(np.linalg.norm(state.h_pos - p_wp))
+                    if d_partner_evader > 75.0 and d_intent < 65.0:
+                        intention_reward -= 4.0 * math.exp(-(d_intent ** 2) / (2.0 * (35.0 ** 2)))
+                        self.intention_clash_penalties_applied += 1
+
+                    # 2. Orthogonal / Opposing Pincer Flanking Reward
+                    v_self = state.i_pos - state.h_pos
+                    v_partner = state.i_pos - p_wp
+                    n_self = float(np.linalg.norm(v_self))
+                    n_partner = float(np.linalg.norm(v_partner))
+                    if n_self > 5.0 and n_partner > 5.0:
+                        cos_phi = float(np.dot(v_self, v_partner) / (n_self * n_partner))
+                        cos_phi = max(-1.0, min(1.0, cos_phi))
+                        flank_score = (1.0 - cos_phi) / 2.0  # sin^2(Delta_phi / 2)
+                        intention_reward += 3.5 * flank_score
+                        if flank_score > 0.4:
+                            self.intention_flank_bonuses_applied += 1
+
+                step_r = r + step_progress + obs_penalty + intention_reward
 
                 dx_imp, dy_imp = self.IMPULSE_STEPS[action_idx]
                 impulse_x += dx_imp

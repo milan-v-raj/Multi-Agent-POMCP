@@ -386,6 +386,14 @@ class MujocoPursuitEvasionEnv(gym.Env):
     def _get_hunter_heading(self, agent_id: int) -> float:
         return float(self.data.qpos[agent_id * 3 + 2])
 
+    @property
+    def evader_pos(self) -> np.ndarray:
+        return self._get_evader_pos_px()
+
+    @property
+    def evader_vel(self) -> np.ndarray:
+        return self._get_evader_vel_px()
+
     def _get_evader_pos_px(self) -> np.ndarray:
         m_pos = self.data.body("evader").xpos[:2]
         return self._m_to_px(m_pos)

@@ -1,0 +1,21 @@
+policy,environment_type,preset,episodes,win_rate_pct,mean_ttc,mean_corridor_overlap_steps,mean_hunter_separation_px,mean_flank_angle_deg,mcts_clashes_prevented,mcts_flank_bonuses
+Tree Deep-POMCP (Belief Only),Dec-POMDP (Pygame),u_trap,3,66.7,256.0,0.0,305.0,95.6,0,0
+Tree Deep-POMCP (Belief Only),Dec-POMDP (Pygame),dense_maze,3,66.7,696.5,49.0,229.4,51.3,0,0
+Tree Deep-POMCP (Belief Only),Dec-POMDP (Pygame),bimodal_fork,3,33.3,311.0,0.0,318.0,100.9,0,0
+Tree Deep-POMCP (Belief Only),Dec-POMDP (Pygame),figure_8,3,33.3,683.0,3.7,238.1,85.2,0,0
+ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),u_trap,3,100.0,496.3,0.0,305.0,58.3,0,0
+ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),dense_maze,3,33.3,736.0,177.7,128.6,64.8,0,0
+ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),bimodal_fork,3,0.0,1000.0,13.7,320.8,0.0,0,0
+ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),figure_8,3,0.0,1000.0,38.7,281.0,0.0,0,0
+CD-ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),u_trap,3,66.7,435.0,8.7,305.0,50.1,0,0
+CD-ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),dense_maze,3,33.3,481.0,79.0,175.0,70.9,0,0
+CD-ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),bimodal_fork,3,33.3,323.0,0.0,320.8,55.4,0,0
+CD-ET-DAG-Deep-POMCP (Belief Only),Dec-POMDP (Pygame),figure_8,3,0.0,1000.0,27.0,221.4,0.0,0,0
+IS-CD-ET-DAG-Deep-POMCP (Belief + Intention),Dec-POMDP (Pygame),u_trap,3,33.3,734.0,3.7,288.7,66.0,7,238
+IS-CD-ET-DAG-Deep-POMCP (Belief + Intention),Dec-POMDP (Pygame),dense_maze,3,66.7,446.0,0.0,249.4,50.1,50,116
+IS-CD-ET-DAG-Deep-POMCP (Belief + Intention),Dec-POMDP (Pygame),bimodal_fork,3,33.3,345.0,0.0,317.5,124.0,123,341
+IS-CD-ET-DAG-Deep-POMCP (Belief + Intention),Dec-POMDP (Pygame),figure_8,3,33.3,194.0,22.3,350.0,125.7,0,224
+"CD-ET-DAG-Deep-POMCP (MuJoCo, Belief Only)",MuJoCo Continuous Unicycle,u_trap,3,66.7,349.5,0.0,329.3,37.4,0,0
+"CD-ET-DAG-Deep-POMCP (MuJoCo, Belief Only)",MuJoCo Continuous Unicycle,bimodal_fork,3,33.3,456.0,0.0,340.9,53.2,0,0
+"IS-CD-ET-DAG-Deep-POMCP (MuJoCo, Belief + Intention)",MuJoCo Continuous Unicycle,u_trap,3,100.0,583.3,0.0,340.4,42.9,0,1140
+"IS-CD-ET-DAG-Deep-POMCP (MuJoCo, Belief + Intention)",MuJoCo Continuous Unicycle,bimodal_fork,3,33.3,331.0,54.7,321.3,15.8,0,705
