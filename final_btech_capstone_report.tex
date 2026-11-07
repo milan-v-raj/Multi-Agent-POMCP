@@ -557,12 +557,12 @@ where $\boldsymbol{\pi}_{\text{MCTS}}(a) \propto N(\text{root}, a)^{1/\tau}$ is 
 % =========================================================================
 % FIGURE 3: BELIEF GRAPH MCTS BENCHMARK
 % =========================================================================
-\begin{figure}[!t]
+\begin{figure*}[!t]
 \centering
-\includegraphics[width=\columnwidth]{belief_graph_mcts_benchmark.png}
-\caption{\textbf{Latent Belief-Graph POMCP (DAG-MCTS) Transposition Benchmark}: Empirical validation of PointNet hash-based state merging. (Top-Left) Transposition merge rate scaling from $10.1\%$ ($N_{\text{sims}}=15$) up to $\mathbf{34.3\%}$ ($N_{\text{sims}}=200$). (Top-Right) Node expansion comparison showing search tree compression. (Bottom-Left) Query latency benchmark confirming PointNet hash lookup ($\mathbf{4.22\ \mu s/query}$) delivers an $\mathbf{18.6\times}$ speedup over Sinkhorn Optimal Transport EMD ($78.4\ \mu\text{s/query}$). (Bottom-Right) Value error convergence under exact Bellman future-value decomposition.}
+\includegraphics[width=\textwidth]{belief_graph_mcts_benchmark.png}
+\caption{\textbf{Latent Belief-Graph POMCP (DAG-MCTS) Transposition Benchmark}: Empirical validation of PointNet hash-based state merging across an audited sweep of MCTS simulations. (Top-Left) Transposition merge rate scaling from $10.1\%$ ($N_{\text{sims}}=15$) up to $\mathbf{34.3\%}$ ($N_{\text{sims}}=200$). (Top-Right) Node expansion comparison showing significant search tree compression. (Bottom-Left) Query latency benchmark confirming PointNet hash lookup ($\mathbf{4.22\ \mu s/query}$) delivers an $\mathbf{18.6\times}$ speedup over Sinkhorn Optimal Transport EMD ($78.4\ \mu\text{s/query}$). (Bottom-Right) Value error convergence under exact Bellman future-value decomposition.}
 \label{fig:belief_graph_benchmark}
-\end{figure}
+\end{figure*}
 
 \subsection{Latent Belief-Graph POMCP (DAG-MCTS) via PointNet Hashing}
 In tree-based MCTS, commutative action sequences (e.g., $[\text{Up}, \text{Right}]$ vs. $[\text{Right}, \text{Up}]$) branch into distinct tree nodes, causing exponential node proliferation. We introduce \textbf{DAG-Deep-POMCP}, converting the search tree into a Directed Acyclic Graph (DAG) by detecting transpositions in continuous belief space (Fig.~\ref{fig:belief_graph_benchmark}).
