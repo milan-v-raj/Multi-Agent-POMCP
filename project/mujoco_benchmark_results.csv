@@ -1,33 +1,33 @@
 policy,preset,episode,seed,captured,ttc,wall_contacts,mean_solver_contacts,mean_latency_ms
-Reactive A*,u_trap,1,7200,0,800,0,0.04,0.40
-Reactive A*,u_trap,2,7223,0,800,0,0.05,0.36
-Reactive A*,dense_maze,1,7200,1,395,7,0.09,0.44
-Reactive A*,dense_maze,2,7223,1,297,0,0.03,0.45
-Reactive A*,bimodal_fork,1,7200,0,800,0,0.02,0.35
-Reactive A*,bimodal_fork,2,7223,0,800,0,0.12,0.35
-Reactive A*,figure_8,1,7200,0,800,36,0.12,0.31
-Reactive A*,figure_8,2,7223,0,800,0,0.06,0.32
-Tree Deep-POMCP (N=20),u_trap,1,7200,0,800,1,0.03,10.49
-Tree Deep-POMCP (N=20),u_trap,2,7223,1,510,0,0.05,8.16
-Tree Deep-POMCP (N=20),dense_maze,1,7200,1,354,5,0.18,7.23
-Tree Deep-POMCP (N=20),dense_maze,2,7223,1,618,7,0.40,8.36
-Tree Deep-POMCP (N=20),bimodal_fork,1,7200,0,800,2,0.01,0.32
-Tree Deep-POMCP (N=20),bimodal_fork,2,7223,0,800,3,0.04,10.10
-Tree Deep-POMCP (N=20),figure_8,1,7200,0,800,0,0.07,7.93
-Tree Deep-POMCP (N=20),figure_8,2,7223,0,800,0,0.03,8.27
-ET-DAG-Deep-POMCP (N=20),u_trap,1,7200,0,800,2,0.04,10.49
-ET-DAG-Deep-POMCP (N=20),u_trap,2,7223,1,511,0,0.06,8.88
-ET-DAG-Deep-POMCP (N=20),dense_maze,1,7200,1,308,2,0.05,6.04
-ET-DAG-Deep-POMCP (N=20),dense_maze,2,7223,1,786,15,0.08,8.59
-ET-DAG-Deep-POMCP (N=20),bimodal_fork,1,7200,0,800,2,0.01,0.33
-ET-DAG-Deep-POMCP (N=20),bimodal_fork,2,7223,1,360,3,0.08,8.97
-ET-DAG-Deep-POMCP (N=20),figure_8,1,7200,0,800,8,0.05,7.98
-ET-DAG-Deep-POMCP (N=20),figure_8,2,7223,0,800,0,0.03,8.55
-CD-ET-DAG-Deep-POMCP (N=20),u_trap,1,7200,1,361,0,0.01,8.93
-CD-ET-DAG-Deep-POMCP (N=20),u_trap,2,7223,1,511,0,0.06,8.64
-CD-ET-DAG-Deep-POMCP (N=20),dense_maze,1,7200,1,309,2,0.04,6.69
-CD-ET-DAG-Deep-POMCP (N=20),dense_maze,2,7223,1,499,7,0.19,7.75
-CD-ET-DAG-Deep-POMCP (N=20),bimodal_fork,1,7200,0,800,2,0.01,0.33
-CD-ET-DAG-Deep-POMCP (N=20),bimodal_fork,2,7223,1,341,0,0.06,8.28
-CD-ET-DAG-Deep-POMCP (N=20),figure_8,1,7200,1,613,6,0.04,6.62
-CD-ET-DAG-Deep-POMCP (N=20),figure_8,2,7223,1,391,0,0.04,5.59
+Reactive A*,u_trap,1,7200,0,800,719,4.47,0.45
+Reactive A*,u_trap,2,7223,0,800,936,1.97,0.43
+Reactive A*,dense_maze,1,7200,0,800,698,1.83,0.45
+Reactive A*,dense_maze,2,7223,0,800,870,2.24,0.42
+Reactive A*,bimodal_fork,1,7200,1,304,148,1.26,0.35
+Reactive A*,bimodal_fork,2,7223,1,317,163,1.51,0.28
+Reactive A*,figure_8,1,7200,0,800,1226,2.58,0.26
+Reactive A*,figure_8,2,7223,0,800,807,1.40,0.30
+Tree Deep-POMCP (N=20),u_trap,1,7200,1,451,158,0.98,8.10
+Tree Deep-POMCP (N=20),u_trap,2,7223,1,542,243,1.20,7.71
+Tree Deep-POMCP (N=20),dense_maze,1,7200,1,341,242,1.25,6.51
+Tree Deep-POMCP (N=20),dense_maze,2,7223,0,800,513,1.07,8.46
+Tree Deep-POMCP (N=20),bimodal_fork,1,7200,1,439,283,1.31,7.54
+Tree Deep-POMCP (N=20),bimodal_fork,2,7223,0,800,545,1.98,9.95
+Tree Deep-POMCP (N=20),figure_8,1,7200,0,800,1258,2.74,0.28
+Tree Deep-POMCP (N=20),figure_8,2,7223,0,800,886,1.49,1.13
+ET-DAG-Deep-POMCP (N=20),u_trap,1,7200,1,797,399,1.47,8.19
+ET-DAG-Deep-POMCP (N=20),u_trap,2,7223,1,696,157,1.80,7.04
+ET-DAG-Deep-POMCP (N=20),dense_maze,1,7200,1,341,242,1.25,6.41
+ET-DAG-Deep-POMCP (N=20),dense_maze,2,7223,1,653,666,1.60,8.46
+ET-DAG-Deep-POMCP (N=20),bimodal_fork,1,7200,0,800,889,1.88,3.57
+ET-DAG-Deep-POMCP (N=20),bimodal_fork,2,7223,1,546,276,1.98,9.91
+ET-DAG-Deep-POMCP (N=20),figure_8,1,7200,0,800,1258,2.74,0.29
+ET-DAG-Deep-POMCP (N=20),figure_8,2,7223,0,800,886,1.49,1.09
+CD-ET-DAG-Deep-POMCP (N=20),u_trap,1,7200,1,797,399,1.47,8.27
+CD-ET-DAG-Deep-POMCP (N=20),u_trap,2,7223,1,696,157,1.80,7.16
+CD-ET-DAG-Deep-POMCP (N=20),dense_maze,1,7200,1,341,242,1.25,9.47
+CD-ET-DAG-Deep-POMCP (N=20),dense_maze,2,7223,0,800,557,1.19,9.40
+CD-ET-DAG-Deep-POMCP (N=20),bimodal_fork,1,7200,0,800,854,1.86,6.16
+CD-ET-DAG-Deep-POMCP (N=20),bimodal_fork,2,7223,1,546,276,1.98,9.96
+CD-ET-DAG-Deep-POMCP (N=20),figure_8,1,7200,0,800,1258,2.74,0.29
+CD-ET-DAG-Deep-POMCP (N=20),figure_8,2,7223,0,800,886,1.49,1.13

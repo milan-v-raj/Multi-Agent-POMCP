@@ -34,7 +34,14 @@ class MujocoPursuitEvasionEnv(gym.Env):
     # (Center of arena at (0, 0), x in [-4.0, +4.0], y in [-3.0, +3.0])
     SCALE = 0.01  # 1 px = 0.01 meters
 
-    FORCE_MAG = 8.0  # Newtons applied to robot chassis
+    # Non-Holonomic Unicycle Kinematic Parameters
+    K_YAW = 4.5       # Proportional yaw steering gain
+    D_YAW = 0.6       # Derivative yaw damping gain
+    TAU_MAX = 2.5     # Maximum steering torque (N*m)
+    OMEGA_MAX = 3.5   # Maximum angular yaw rate (rad/s ≈ 200 deg/s)
+    FORCE_MAG = 8.5   # Longitudinal forward force (N)
+    FORCE_MAG_EVADER = 10.5 # Agile evader forward force (N)
+
     ACTION_VECTORS = [
         np.array([0.0,  FORCE_MAG], dtype=np.float32),  # 0: UP (in Pygame y is down, in MuJoCo y is up)
         np.array([0.0, -FORCE_MAG], dtype=np.float32),  # 1: DOWN
@@ -126,6 +133,7 @@ class MujocoPursuitEvasionEnv(gym.Env):
             "    <material name='grid_mat' texture='grid' texrepeat='8 6' reflectance='0.15'/>",
             "    <material name='wall_mat' rgba='0.28 0.35 0.45 1.0' reflectance='0.2'/>",
             "    <material name='obs_mat' rgba='0.40 0.48 0.58 1.0' reflectance='0.1'/>",
+            "    <material name='wheel_mat' rgba='0.12 0.12 0.12 1.0'/>",
             "  </asset>",
             "  <worldbody>",
             "    <light diffuse='0.9 0.9 0.9' dir='0 0 -1' pos='0 0 6.0'/>",
@@ -151,45 +159,42 @@ class MujocoPursuitEvasionEnv(gym.Env):
                 f"size='{obs_size_m[0]:.3f} {obs_size_m[1]:.3f} {wall_h/2}' material='obs_mat'/>"
             )
 
-        # Add Pursuer Robots (Hunters)
+        # Add Pursuer Robots (Hunters) - Non-Holonomic Differential Drive
         hunter_colors = ["0.22 0.52 0.95 1.0", "0.10 0.78 0.85 1.0"]
         for i in range(self.num_hunters):
             h_m = self._px_to_m(h_spawns[i])
             c_rgba = hunter_colors[i % len(hunter_colors)]
             xml_lines.extend([
                 f"    <body name='hunter_{i}' pos='{h_m[0]:.3f} {h_m[1]:.3f} 0.12'>",
-                f"      <joint name='h{i}_x' type='slide' axis='1 0 0' damping='1.5'/>",
-                f"      <joint name='h{i}_y' type='slide' axis='0 1 0' damping='1.5'/>",
-                f"      <geom name='h{i}_geom' type='cylinder' size='0.12 0.08' mass='1.0' rgba='{c_rgba}' friction='0.8 0.1 0.1'/>",
-                f"      <geom name='h{i}_cap' type='sphere' size='0.08' pos='0 0 0.08' mass='0.05' rgba='0.95 0.95 0.95 1.0'/>",
+                f"      <joint name='h{i}_x' type='slide' axis='1 0 0' damping='1.2'/>",
+                f"      <joint name='h{i}_y' type='slide' axis='0 1 0' damping='1.2'/>",
+                f"      <joint name='h{i}_yaw' type='hinge' axis='0 0 1' damping='0.8'/>",
+                f"      <geom name='h{i}_geom' type='cylinder' size='0.14 0.07' mass='1.2' rgba='{c_rgba}' friction='0.8 0.1 0.1'/>",
+                f"      <geom name='h{i}_dome' type='sphere' size='0.07' pos='0 0 0.07' mass='0.05' rgba='0.95 0.95 0.95 1.0'/>",
+                f"      <geom name='h{i}_nose' type='box' size='0.06 0.035 0.02' pos='0.12 0 0.04' mass='0.02' rgba='0.95 0.95 0.20 1.0'/>",
+                f"      <geom name='h{i}_wleft' type='cylinder' size='0.05 0.02' pos='0 0.13 -0.02' zaxis='0 1 0' material='wheel_mat' mass='0.1'/>",
+                f"      <geom name='h{i}_wright' type='cylinder' size='0.05 0.02' pos='0 -0.13 -0.02' zaxis='0 1 0' material='wheel_mat' mass='0.1'/>",
+                f"      <geom name='h{i}_caster' type='sphere' size='0.03' pos='-0.10 0 -0.04' material='wheel_mat' mass='0.02'/>",
                 "    </body>"
             ])
 
-        # Add Evader Robot
+        # Add Evader Robot - Non-Holonomic Differential Drive
         e_m = self._px_to_m(e_spawn)
         xml_lines.extend([
             f"    <body name='evader' pos='{e_m[0]:.3f} {e_m[1]:.3f} 0.12'>",
-            "      <joint name='evader_x' type='slide' axis='1 0 0' damping='1.5'/>",
-            "      <joint name='evader_y' type='slide' axis='0 1 0' damping='1.5'/>",
-            "      <geom name='evader_geom' type='cylinder' size='0.12 0.08' mass='0.85' rgba='0.92 0.25 0.25 1.0' friction='0.8 0.1 0.1'/>",
-            "      <geom name='evader_cap' type='sphere' size='0.08' pos='0 0 0.08' mass='0.05' rgba='0.95 0.95 0.20 1.0'/>",
+            "      <joint name='evader_x' type='slide' axis='1 0 0' damping='1.2'/>",
+            "      <joint name='evader_y' type='slide' axis='0 1 0' damping='1.2'/>",
+            "      <joint name='evader_yaw' type='hinge' axis='0 0 1' damping='0.8'/>",
+            "      <geom name='evader_geom' type='cylinder' size='0.14 0.07' mass='1.0' rgba='0.92 0.25 0.25 1.0' friction='0.8 0.1 0.1'/>",
+            "      <geom name='evader_dome' type='sphere' size='0.07' pos='0 0 0.07' mass='0.05' rgba='0.95 0.85 0.20 1.0'/>",
+            "      <geom name='evader_nose' type='box' size='0.06 0.035 0.02' pos='0.12 0 0.04' mass='0.02' rgba='0.15 0.15 0.15 1.0'/>",
+            "      <geom name='evader_wleft' type='cylinder' size='0.05 0.02' pos='0 0.13 -0.02' zaxis='0 1 0' material='wheel_mat' mass='0.1'/>",
+            "      <geom name='evader_wright' type='cylinder' size='0.05 0.02' pos='0 -0.13 -0.02' zaxis='0 1 0' material='wheel_mat' mass='0.1'/>",
+            "      <geom name='evader_caster' type='sphere' size='0.03' pos='-0.10 0 -0.04' material='wheel_mat' mass='0.02'/>",
             "    </body>"
         ])
 
         xml_lines.append("  </worldbody>")
-
-        # Continuous Motor Actuators
-        xml_lines.append("  <actuator>")
-        for i in range(self.num_hunters):
-            xml_lines.extend([
-                f"    <motor joint='h{i}_x' name='motor_h{i}_x' gear='1' ctrlrange='-35 35'/>",
-                f"    <motor joint='h{i}_y' name='motor_h{i}_y' gear='1' ctrlrange='-35 35'/>"
-            ])
-        xml_lines.extend([
-            "    <motor joint='evader_x' name='motor_evader_x' gear='1' ctrlrange='-35 35'/>",
-            "    <motor joint='evader_y' name='motor_evader_y' gear='1' ctrlrange='-35 35'/>"
-        ])
-        xml_lines.append("  </actuator>")
         xml_lines.append("</mujoco>")
 
         return "\n".join(xml_lines)
@@ -235,28 +240,45 @@ class MujocoPursuitEvasionEnv(gym.Env):
         actions: Dict[str, Union[int, np.ndarray]]
     ) -> Tuple[Dict[str, np.ndarray], Dict[str, float], Dict[str, bool], Dict[str, bool], Dict[str, Any]]:
         self.current_step += 1
+        self.data.qfrc_applied[:] = 0.0
 
-        # 1. Apply Hunter Continuous Motor Torques
-        ctrl_idx = 0
+        # 1. Non-Holonomic Unicycle Kinematic Steering & Thrust for Hunters
         for i in range(self.num_hunters):
             act = actions.get(f"agent_{i}", 4)
             if isinstance(act, (int, np.integer)):
                 # Convert discrete action index (0: UP, 1: DOWN, 2: LEFT, 3: RIGHT, 4: STAY)
                 # Note: in Pygame Y is downward; in MuJoCo Y is upward.
-                if act == 0:    f_x, f_y =  0.0,  self.FORCE_MAG
-                elif act == 1:  f_x, f_y =  0.0, -self.FORCE_MAG
-                elif act == 2:  f_x, f_y = -self.FORCE_MAG, 0.0
-                elif act == 3:  f_x, f_y =  self.FORCE_MAG, 0.0
-                else:           f_x, f_y =  0.0,  0.0
+                if act == 0:    target_phi =  math.pi / 2.0  # UP (+Y in MuJoCo)
+                elif act == 1:  target_phi = -math.pi / 2.0  # DOWN (-Y in MuJoCo)
+                elif act == 2:  target_phi =  math.pi         # LEFT (-X in MuJoCo)
+                elif act == 3:  target_phi =  0.0             # RIGHT (+X in MuJoCo)
+                else:           target_phi = None             # WAIT / IDLE
             else:
-                f_x = float(act[0]) * (self.FORCE_MAG / 0.5)
-                f_y = -float(act[1]) * (self.FORCE_MAG / 0.5)
+                fx = float(act[0])
+                fy = -float(act[1])  # Convert Pygame down to MuJoCo up
+                if math.hypot(fx, fy) > 1e-3:
+                    target_phi = math.atan2(fy, fx)
+                else:
+                    target_phi = None
 
-            self.data.ctrl[ctrl_idx]     = f_x
-            self.data.ctrl[ctrl_idx + 1] = f_y
-            ctrl_idx += 2
+            h_th = float(self.data.qpos[i * 3 + 2])
+            h_om = float(self.data.qvel[i * 3 + 2])
 
-        # 2. Compute Evader Continuous Force
+            if target_phi is not None:
+                err_phi = (target_phi - h_th + math.pi) % (2.0 * math.pi) - math.pi
+                tau_yaw = float(np.clip(self.K_YAW * err_phi - self.D_YAW * h_om, -self.TAU_MAX, self.TAU_MAX))
+                align_cos = math.cos(err_phi)
+                # Forward thrust scales with heading alignment (unicycle kinematics)
+                f_fwd = float(self.FORCE_MAG * max(0.0, align_cos)) if abs(err_phi) < (math.pi * 0.6) else 0.0
+            else:
+                tau_yaw = float(-self.D_YAW * h_om)
+                f_fwd = 0.0
+
+            self.data.qfrc_applied[i * 3]     = f_fwd * math.cos(h_th)
+            self.data.qfrc_applied[i * 3 + 1] = f_fwd * math.sin(h_th)
+            self.data.qfrc_applied[i * 3 + 2] = tau_yaw
+
+        # 2. Non-Holonomic Unicycle Steering & Thrust for Evader
         h_pos_px = [self._get_hunter_pos_px(i) for i in range(self.num_hunters)]
         e_pos_px = self._get_evader_pos_px()
         e_vel_px = self._get_evader_vel_px()
@@ -264,36 +286,60 @@ class MujocoPursuitEvasionEnv(gym.Env):
         e_force = self.evader_policy.get_action(
             e_pos_px, e_vel_px, h_pos_px, self.obstacles, self.width, self.height
         )
-        e_fx_m = float(e_force[0]) * (self.FORCE_MAG / 0.5)
-        e_fy_m = -float(e_force[1]) * (self.FORCE_MAG / 0.5)
+        efx = float(e_force[0])
+        efy = -float(e_force[1])
 
-        self.data.ctrl[ctrl_idx]     = e_fx_m
-        self.data.ctrl[ctrl_idx + 1] = e_fy_m
+        e_dof_idx = self.num_hunters * 3
+        e_th = float(self.data.qpos[e_dof_idx + 2])
+        e_om = float(self.data.qvel[e_dof_idx + 2])
 
-        # 3. Step MuJoCo Continuous Multi-Body Dynamics with Physical Speed Clamping
+        if math.hypot(efx, efy) > 1e-3:
+            e_target_phi = math.atan2(efy, efx)
+            e_err_phi = (e_target_phi - e_th + math.pi) % (2.0 * math.pi) - math.pi
+            e_tau = float(np.clip(self.K_YAW * e_err_phi - self.D_YAW * e_om, -self.TAU_MAX, self.TAU_MAX))
+            e_align = math.cos(e_err_phi)
+            e_fwd = float(self.FORCE_MAG_EVADER * max(0.0, e_align)) if abs(e_err_phi) < (math.pi * 0.6) else 0.0
+        else:
+            e_tau = float(-self.D_YAW * e_om)
+            e_fwd = 0.0
+
+        self.data.qfrc_applied[e_dof_idx]     = e_fwd * math.cos(e_th)
+        self.data.qfrc_applied[e_dof_idx + 1] = e_fwd * math.sin(e_th)
+        self.data.qfrc_applied[e_dof_idx + 2] = e_tau
+
+        # 3. Step MuJoCo Continuous Dynamics with Lateral No-Slip Tire Constraint
         v_max_hunter_m_s = (self.max_speed_hunter * self.SCALE) / self.dt_step
         v_max_evader_m_s = (self.max_speed_evader * self.SCALE) / self.dt_step
 
         for _ in range(self.physics_substeps):
             mujoco.mj_step(self.model, self.data)
 
-            # Enforce non-linear physical velocity bounds on joint dynamics
-            for i in range(self.num_hunters):
-                vx = self.data.qvel[i * 2]
-                vy = self.data.qvel[i * 2 + 1]
-                spd = math.hypot(vx, vy)
-                if spd > v_max_hunter_m_s:
-                    scale = v_max_hunter_m_s / spd
-                    self.data.qvel[i * 2] = vx * scale
-                    self.data.qvel[i * 2 + 1] = vy * scale
+            # Enforce non-holonomic zero-lateral-slip tire constraint for all agents
+            for a in range(self.num_hunters + 1):
+                idx = a * 3
+                th = self.data.qpos[idx + 2]
+                vx = self.data.qvel[idx]
+                vy = self.data.qvel[idx + 1]
+                omega = self.data.qvel[idx + 2]
 
-            evx = self.data.qvel[self.num_hunters * 2]
-            evy = self.data.qvel[self.num_hunters * 2 + 1]
-            espd = math.hypot(evx, evy)
-            if espd > v_max_evader_m_s:
-                escale = v_max_evader_m_s / espd
-                self.data.qvel[self.num_hunters * 2] = evx * escale
-                self.data.qvel[self.num_hunters * 2 + 1] = evy * escale
+                v_long = vx * math.cos(th) + vy * math.sin(th)
+                v_lat = -vx * math.sin(th) + vy * math.cos(th)
+
+                # Heavy lateral tire grip (zero sideways slipping)
+                v_lat *= 0.04
+
+                self.data.qvel[idx]     = v_long * math.cos(th) - v_lat * math.sin(th)
+                self.data.qvel[idx + 1] = v_long * math.sin(th) + v_lat * math.cos(th)
+
+                v_lim = v_max_hunter_m_s if a < self.num_hunters else v_max_evader_m_s
+                cur_spd = math.hypot(self.data.qvel[idx], self.data.qvel[idx + 1])
+                if cur_spd > v_lim:
+                    sc = v_lim / cur_spd
+                    self.data.qvel[idx]     *= sc
+                    self.data.qvel[idx + 1] *= sc
+
+                if abs(omega) > self.OMEGA_MAX:
+                    self.data.qvel[idx + 2] = math.copysign(self.OMEGA_MAX, omega)
 
         # 4. Sensing & Continuous 3D Optical LOS Raycasts
         self._update_sensing()
@@ -331,30 +377,39 @@ class MujocoPursuitEvasionEnv(gym.Env):
         return self._m_to_px(m_pos)
 
     def _get_hunter_vel_px(self, agent_id: int) -> np.ndarray:
-        vx_m_s = float(self.data.qvel[agent_id * 2])
-        vy_m_s = float(self.data.qvel[agent_id * 2 + 1])
+        vx_m_s = float(self.data.qvel[agent_id * 3])
+        vy_m_s = float(self.data.qvel[agent_id * 3 + 1])
         vx_px = (vx_m_s * self.dt_step) / self.SCALE
         vy_px = -(vy_m_s * self.dt_step) / self.SCALE  # Invert Y for Pygame coordinate consistency
         return np.array([vx_px, vy_px], dtype=np.float32)
+
+    def _get_hunter_heading(self, agent_id: int) -> float:
+        return float(self.data.qpos[agent_id * 3 + 2])
 
     def _get_evader_pos_px(self) -> np.ndarray:
         m_pos = self.data.body("evader").xpos[:2]
         return self._m_to_px(m_pos)
 
     def _get_evader_vel_px(self) -> np.ndarray:
-        evx_m_s = float(self.data.qvel[self.num_hunters * 2])
-        evy_m_s = float(self.data.qvel[self.num_hunters * 2 + 1])
+        e_idx = self.num_hunters * 3
+        evx_m_s = float(self.data.qvel[e_idx])
+        evy_m_s = float(self.data.qvel[e_idx + 1])
         evx_px = (evx_m_s * self.dt_step) / self.SCALE
         evy_px = -(evy_m_s * self.dt_step) / self.SCALE
         return np.array([evx_px, evy_px], dtype=np.float32)
 
+    def _get_evader_heading(self) -> float:
+        return float(self.data.qpos[self.num_hunters * 3 + 2])
+
     def _check_hunter_contact_wall(self, agent_id: int) -> bool:
         """Queries MuJoCo contact manifold for collision with obstacles or outer boundary."""
-        h_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, f"h{agent_id}_geom")
+        h_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, f"hunter_{agent_id}")
         for i in range(self.data.ncon):
             con = self.data.contact[i]
-            if con.geom1 == h_geom_id or con.geom2 == h_geom_id:
-                other_geom = con.geom2 if con.geom1 == h_geom_id else con.geom1
+            body1 = self.model.geom_bodyid[con.geom1]
+            body2 = self.model.geom_bodyid[con.geom2]
+            if body1 == h_body_id or body2 == h_body_id:
+                other_geom = con.geom2 if body1 == h_body_id else con.geom1
                 other_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, other_geom)
                 if other_name and (other_name.startswith("obs_") or other_name.startswith("wall_")):
                     return True
@@ -507,17 +562,21 @@ class MujocoPursuitEvasionEnv(gym.Env):
         b_mean, _, b_spread = self.pf.get_belief_stats()
         h_positions = np.array([self._get_hunter_pos_px(i) for i in range(self.num_hunters)], dtype=np.float32)
         h_velocities = np.array([self._get_hunter_vel_px(i) for i in range(self.num_hunters)], dtype=np.float32)
+        h_headings = [self._get_hunter_heading(i) for i in range(self.num_hunters)]
 
         return {
             "current_step": self.current_step,
             "evader_ground_truth": np.copy(self._get_evader_pos_px()),
+            "evader_heading": self._get_evader_heading(),
+            "hunter_headings": h_headings,
             "belief_mean": np.copy(b_mean) if self.pf.is_initialized else None,
             "belief_spread": b_spread if self.pf.is_initialized else 0.0,
             "is_belief_active": self.pf.is_initialized,
             "can_see_global": self.can_see_global,
             "hunter_positions": h_positions,
             "hunter_velocities": h_velocities,
-            "particles": self.get_particle_array() if self.pf.is_initialized else None
+            "particles": self.get_particle_array() if self.pf.is_initialized else None,
+            "kinematics": "non_holonomic_unicycle"
         }
 
     def render(self, camera_name: str = "perspective") -> np.ndarray:

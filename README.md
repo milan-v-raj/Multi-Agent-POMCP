@@ -79,14 +79,14 @@ Cooperative multi-agent pursuit-evasion under continuous dynamics and partial ob
 | **`CD-ET-DAG-Deep-POMCP` ($N=20$, Counter-Deceptive, Ours)** | **75.0% (+16.7%)** | 501.3 | 3.3 | **1.4** | **1.2** |
 
 ### 5. High-Fidelity Continuous Multi-Body Physics Benchmark (Google DeepMind MuJoCo)
-Evaluated inside Google DeepMind's **MuJoCo** continuous rigid-body simulation engine (`MujocoPursuitEvasionEnv`) with continuous 3D optical Line-of-Sight (`mj_ray`) raycasting, multi-body contact dynamics, Coulomb friction, and non-linear momentum transfer against `DeceptiveFeintingEvader`:
+Evaluated inside Google DeepMind's **MuJoCo** continuous physics engine (`MujocoPursuitEvasionEnv`) equipped with **Non-Holonomic Differential-Drive Unicycle Kinematics** ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$, lateral tire slip $< 1.0\text{ mm/s}$), continuous 3D optical Line-of-Sight (`mj_ray`) raycasting, multi-body contact dynamics, and Coulomb friction against `DeceptiveFeintingEvader`:
 
-| Policy | Capture Win Rate (%) | Mean TTC (steps) | Mean Wall Collisions / Ep | Solver Contacts / Step | Mean Decision Latency (ms) |
+| Policy | Capture Win Rate (%) | Mean TTC (steps) | Mean Wall Contacts / Ep | Solver Contacts / Step | Mean Decision Latency (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Reactive A\*** | 25.0% | 686.5 | 5.4 | 0.06 | **0.37 ms** |
-| **Tree Deep-POMCP ($N=20$)** | 37.5% | 685.2 | 2.2 | 0.10 | 7.61 ms |
-| **`ET-DAG-Deep-POMCP` ($N=20$)** | 50.0% | 645.6 | 4.0 | 0.05 | 7.48 ms |
-| **`CD-ET-DAG-Deep-POMCP` ($N=20$, Ours)** | **87.5% (+62.5%)** | **478.1 (-208.4)** | **2.1** | **0.06** | **6.60 ms** |
+| **Reactive A\*** | 25.0% | 677.6 | 695.9 | 2.16 | **0.37 ms** |
+| **Tree Deep-POMCP ($N=20$)** | 50.0% | 621.6 | 516.0 | 1.50 | 6.21 ms |
+| **`ET-DAG-Deep-POMCP` ($N=20$, Ours)** | **62.5% (+37.5%)** | 679.1 | 596.6 | 1.78 | **5.62 ms** |
+| **`CD-ET-DAG-Deep-POMCP` ($N=20$, Ours)** | 50.0% | 697.5 | **578.6** | **1.72** | 6.48 ms |
 
 ![MuJoCo Continuous Multi-Body Physics Benchmark](project/mujoco_continuous_physics_benchmark.png)
 
