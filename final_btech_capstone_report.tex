@@ -92,76 +92,170 @@ To definitively resolve these limitations across the complete project lifecycle,
 % =========================================================================
 \begin{figure*}[!t]
 \centering
-\resizebox{0.98\textwidth}{!}{%
+\resizebox{0.95\textwidth}{!}{%
 \begin{tikzpicture}[
     font=\sffamily,
     >=Stealth,
+    % Core box styles with fixed text width to eliminate any line overflowing
     envbox/.style={
-        draw=blue!80!black, fill=blue!5, thick, rounded corners=6pt,
-        text width=6.2cm, minimum height=2.4cm, align=center, inner sep=6pt
+        draw=blue!75!black,
+        fill=blue!5,
+        thick,
+        rounded corners=5pt,
+        text width=6.2cm,
+        minimum height=2.2cm,
+        align=center,
+        inner sep=6pt
     },
     pfbox/.style={
-        draw=cyan!80!black, fill=cyan!5, thick, rounded corners=6pt,
-        text width=6.2cm, minimum height=2.4cm, align=center, inner sep=6pt
+        draw=cyan!75!black,
+        fill=cyan!5,
+        thick,
+        rounded corners=5pt,
+        text width=6.2cm,
+        minimum height=2.2cm,
+        align=center,
+        inner sep=6pt
     },
     gridbox/.style={
-        draw=green!60!black, fill=green!5, thick, rounded corners=5pt,
-        text width=4.3cm, minimum height=2.2cm, align=center, inner sep=5pt
+        draw=green!60!black,
+        fill=green!5,
+        thick,
+        rounded corners=5pt,
+        text width=4.3cm,
+        minimum height=2.2cm,
+        align=center,
+        inner sep=5pt
     },
     kinbox/.style={
-        draw=teal!65!black, fill=teal!5, thick, rounded corners=5pt,
-        text width=4.3cm, minimum height=2.2cm, align=center, inner sep=5pt
+        draw=teal!65!black,
+        fill=teal!5,
+        thick,
+        rounded corners=5pt,
+        text width=4.3cm,
+        minimum height=2.2cm,
+        align=center,
+        inner sep=5pt
     },
     ptbox/.style={
-        draw=cyan!70!black, fill=cyan!6, thick, rounded corners=5pt,
-        text width=4.3cm, minimum height=2.2cm, align=center, inner sep=5pt
+        draw=cyan!70!black,
+        fill=cyan!6,
+        thick,
+        rounded corners=5pt,
+        text width=4.3cm,
+        minimum height=2.2cm,
+        align=center,
+        inner sep=5pt
     },
     fusebox/.style={
-        draw=purple!80!black, fill=purple!5, thick, rounded corners=5pt,
-        text width=14.4cm, minimum height=1.6cm, align=center, inner sep=6pt
+        draw=purple!75!black,
+        fill=purple!5,
+        thick,
+        rounded corners=5pt,
+        text width=14.4cm,
+        minimum height=1.7cm,
+        align=center,
+        inner sep=6pt
     },
-    dagbox/.style={
-        draw=orange!90!black, fill=orange!8, thick, rounded corners=6pt,
-        text width=9.8cm, minimum height=3.8cm, align=center, inner sep=7pt
+    pheadbox/.style={
+        draw=teal!75!black,
+        fill=teal!5,
+        thick,
+        rounded corners=5pt,
+        text width=6.3cm,
+        minimum height=1.8cm,
+        align=center,
+        inner sep=5pt
     },
-    intentbox/.style={
-        draw=red!80!black, fill=red!6, thick, rounded corners=6pt,
-        text width=4.0cm, minimum height=3.8cm, align=center, inner sep=6pt
+    vheadbox/.style={
+        draw=orange!80!black,
+        fill=orange!5,
+        thick,
+        rounded corners=5pt,
+        text width=6.3cm,
+        minimum height=1.8cm,
+        align=center,
+        inner sep=5pt
     },
-    stagebg/.style={dashed, rounded corners=8pt, line width=0.8pt},
-    stagepill/.style={font=\sffamily\bfseries\scriptsize, rounded corners=3pt, inner sep=3pt, anchor=center},
-    flowarrow/.style={-{Stealth[length=6pt, width=4.5pt]}, very thick, draw=black!80}
+    mctsbox/.style={
+        draw=orange!85!black,
+        fill=yellow!12!orange!8,
+        thick,
+        rounded corners=5pt,
+        text width=9.8cm,
+        minimum height=3.6cm,
+        align=center,
+        inner sep=7pt
+    },
+    ctrlbox/.style={
+        draw=red!75!black,
+        fill=red!5,
+        thick,
+        rounded corners=5pt,
+        text width=3.8cm,
+        minimum height=3.6cm,
+        align=center,
+        inner sep=6pt
+    },
+    stagebg/.style={
+        dashed,
+        rounded corners=8pt,
+        line width=0.8pt
+    },
+    stagepill/.style={
+        font=\sffamily\bfseries\scriptsize,
+        rounded corners=3pt,
+        inner sep=3pt,
+        anchor=center
+    },
+    flowarrow/.style={
+        -{Stealth[length=6pt, width=4.5pt]},
+        very thick,
+        draw=black!75
+    },
+    flowlabel/.style={
+        font=\sffamily\scriptsize\bfseries,
+        fill=white,
+        draw=black!25,
+        inner sep=2pt,
+        rounded corners=2pt
+    }
 ]
 
-% STAGE I: Continuous Environment & Bimodal Particle Belief Filter
-\node[envbox] (env) at (-4.2, 8.8) {
+% =========================================================================
+% STAGE I: DEC-POMDP SENSING & MULTIMODAL SMC BELIEF (y = 8.7)
+% =========================================================================
+\node[envbox] (env) at (-4.2, 8.7) {
     \textbf{\normalsize MuJoCo Non-Holonomic Continuous Physics}\\[2pt]
-    \scriptsize $\bullet$ \textbf{Kinematics}: $\dot{x}\cos\theta + \dot{y}\sin\theta = v_L, \; \dot{x}\sin\theta - \dot{y}\cos\theta = 0, \; \dot{\theta} = \omega$\\[1pt]
-    \scriptsize $\bullet$ \textbf{Actuators}: Closed-Loop Heading PD Torque ($\tau_{\text{yaw}}$) + Gated Thrust ($F_{\text{fwd}}$)\\[1pt]
-    \scriptsize $\bullet$ \textbf{Sensing}: Native 3D Continuous Raycasting (\texttt{mj\_ray}) \& Contact Manifolds
+    \scriptsize $\bullet$ \textbf{Kinematics}: $\dot{x}\sin\theta - \dot{y}\cos\theta = 0, \; \dot{\theta} = \omega$ (Unicycle)\\[1pt]
+    \scriptsize $\bullet$ \textbf{Actuators}: Closed-Loop Heading PD Torque ($\tau_{\text{yaw}}$) + Thrust ($F_{\text{fwd}}$)\\[1pt]
+    \scriptsize $\bullet$ \textbf{Sensing}: Native 3D Continuous Raycasting (\texttt{mj\_ray}) \& Contacts
 };
 
-\node[pfbox] (pf) at (4.2, 8.8) {
-    \textbf{\normalsize Bimodal SMC Filter \& Negative Evidence}\\[2pt]
+\node[pfbox] (pf) at (4.2, 8.7) {
+    \textbf{\normalsize Bimodal SMC Belief Filter \& Negative Evidence}\\[2pt]
     \scriptsize $\bullet$ \textbf{Particles}: $M = 200$ States $\mathbf{x}_t^{(m)} = (\mathbf{e}_t^{(m)}, \dot{\mathbf{e}}_t^{(m)}) \in \mathbb{R}^4$\\[1pt]
-    \scriptsize $\bullet$ \textbf{Mode 0 (Momentum)}: Linear kinematic propagation through occlusion\\[1pt]
-    \scriptsize $\bullet$ \textbf{Mode 1 (Counter-Deceptive)}: Occluded J-Hook Reversal Hypothesis\\[1pt]
+    \scriptsize $\bullet$ \textbf{Hypotheses}: Mode 0 (linear momentum) vs Mode 1 (J-hook feint)\\[1pt]
     \scriptsize $\bullet$ \textbf{Negative Evidence}: Falsifies Mode 0 if clear LOS reveals no evader!
 };
 
+% Horizontal arrow between env and pf (Clean 2.0cm gap, NO opaque overlapping badge!)
 \draw[flowarrow] (env.east) -- (pf.west);
-\node[font=\sffamily\scriptsize\bfseries, text=blue!90!black, align=center, above=2pt] at (0, 8.8) {Continuous Raycast $\mathbf{o}_t$\\[-1pt]\tiny(\texttt{mj\_ray} LOS, Contacts)};
+\node[font=\sffamily\scriptsize\bfseries, text=blue!90!black, align=center, above=2pt] at (0, 8.7) {Continuous Raycast $\mathbf{o}_t$\\[-1pt]\tiny(\texttt{mj\_ray} LOS, Contacts)};
 
-% STAGE II: Tri-Stream Feature Encoders
-\node[gridbox] (grid) at (-5.2, 4.4) {
+% =========================================================================
+% STAGE II: TRI-STREAM SPATIO-TEMPORAL ENCODERS (y = 4.3)
+% Planar routing: Grid (Left) -> Kinematics (Center) -> PointNet (Right)
+% =========================================================================
+\node[gridbox] (grid) at (-5.2, 4.3) {
     \textbf{\small Local Grid Encoder}\\[2pt]
     \scriptsize $11 \times 11$ Local Occupancy Grid\\[1pt]
-    \scriptsize Obstacle Geometry $\mathcal{O}$\\[1pt]
+    \scriptsize Raycast Obstacle Geometry $\mathcal{O}$\\[1pt]
     \scriptsize $\text{Linear}(121 \to 64) \to \text{ReLU}$\\[2pt]
     \scriptsize $\implies \mathbf{z}_{\text{grid}} \in \mathbb{R}^{64}$
 };
 
-\node[kinbox] (kin) at (0.0, 4.4) {
+\node[kinbox] (kin) at (0.0, 4.3) {
     \textbf{\small Kinematics Encoder}\\[2pt]
     \scriptsize State $[\mathbf{p}_i, \mathbf{v}_i, \mathbf{p}_j, \mathbf{v}_j] \in \mathbb{R}^8$\\[1pt]
     \scriptsize Non-Holonomic Headings $\theta_i, \theta_j$\\[1pt]
@@ -169,65 +263,107 @@ To definitively resolve these limitations across the complete project lifecycle,
     \scriptsize $\implies \mathbf{z}_{\text{kin}} \in \mathbb{R}^{32}$
 };
 
-\node[ptbox] (pt) at (5.2, 4.4) {
+\node[ptbox] (pointnet) at (5.2, 4.3) {
     \textbf{\small PointNet Belief Encoder}\\[2pt]
-    \scriptsize Permutation-Invariant SMC Cloud\\[1pt]
-    \scriptsize $\text{MLP}(4 \to 64 \to 128)$ + LayerNorm\\[1pt]
-    \scriptsize Symmetric Max-Pooling $\max_{m}$\\[2pt]
-    \scriptsize $\implies \mathbf{z}_{\text{belief}} \in \mathbb{R}^{128}$ (Normalized)
+    \scriptsize Particle Cloud $\mathcal{B}_t \in \mathbb{R}^{200 \times 4}$\\[1pt]
+    \scriptsize Shared MLP: $4 \to 64 \to 128$ + LN\\[1pt]
+    \scriptsize Symmetric Max-Pool $\max_m \text{MLP}$\\[2pt]
+    \scriptsize $\implies \mathbf{z}_{\text{belief}} \in \mathbb{R}^{128}$ (Invariant)
 };
 
-\draw[flowarrow] (env.south) -- ++(0,-0.6) -| (grid.north);
-\draw[flowarrow] (env.south) -- ++(0,-0.6) -| (kin.north);
-\draw[flowarrow] (pf.south) -- (pt.north);
+% Routing from Stage I to Stage II (Zero overlaps, clean planar drops)
+\draw[flowarrow] (env.south -| grid.north) -- node[midway, left=2pt, flowlabel] {$11 \times 11$ Grid} (grid.north);
+\draw[flowarrow] ($(env.south) + (2.5, 0)$) -- ++(0, -0.8) -| node[above=2pt, pos=0.35, flowlabel] {Kinematics $[\mathbf{p}, \mathbf{v}]$} (kin.north);
+\draw[flowarrow] (pf.south -| pointnet.north) -- node[midway, right=2pt, flowlabel] {Particles $\mathcal{B}_t \in \mathbb{R}^{200 \times 4}$} (pointnet.north);
 
-% STAGE III: Multimodal Fusion Trunk & Dual Heads
-\node[fusebox] (fuse) at (0.0, 1.2) {
-    \textbf{\normalsize Multimodal Fusion Trunk \& Dual Policy-Value Evaluation Heads}\\[2pt]
-    \scriptsize Latent Fusion: $\mathbf{z}_{\text{fuse}} = \text{ReLU}\big(\text{Linear}([\mathbf{z}_{\text{grid}}, \mathbf{z}_{\text{kin}}, \mathbf{z}_{\text{belief}}] \to 128)\big) \in \mathbb{R}^{128}$\\[2pt]
-    \small $\mathbf{P}_\theta(s, \cdot) = \text{Softmax}(\mathbf{W}_p \mathbf{z}_{\text{fuse}}) \in \mathbb{R}^5 \quad \bigstar \quad V_\phi(s) = \tanh(\mathbf{W}_v \mathbf{z}_{\text{fuse}}) \in [-1, 1]$
+% =========================================================================
+% STAGE III: MULTIMODAL FUSION TRUNK (y = 0.3) & DUAL HEADS (y = -2.3)
+% =========================================================================
+\node[fusebox] (fusion) at (0.0, 0.3) {
+    \textbf{\normalsize Multimodal Feature Fusion Trunk}\\[2pt]
+    \scriptsize Concatenation: $\mathbf{z}_{\text{concat}} = [\mathbf{z}_{\text{belief}} \,(128\text{d}) \parallel \mathbf{z}_{\text{grid}} \,(64\text{d}) \parallel \mathbf{z}_{\text{kin}} \,(32\text{d})] \in \mathbb{R}^{224}$\\[1pt]
+    \scriptsize Fully Connected: $\text{Linear}(224 \to 256) \to \text{LayerNorm} \to \text{ReLU} \to \text{Linear}(256 \to 128) \to \text{LayerNorm} \to \text{ReLU}$\\[1pt]
+    \scriptsize $\implies$ Unified Fused Latent Representation $\mathbf{z}_{\text{fuse}} \in \mathbb{R}^{128}$
 };
 
-\draw[flowarrow] (grid.south) -- ++(0,-0.4) -| (-4.5, 2.0);
-\draw[flowarrow] (kin.south) -- (0.0, 2.0);
-\draw[flowarrow] (pt.south) -- ++(0,-0.4) -| (4.5, 2.0);
+% Parallel vertical drops from encoders into fusion trunk
+\draw[flowarrow] (grid.south) -- node[midway, left=2pt, flowlabel] {$\mathbf{z}_{\text{grid}} \,(64\text{d})$} ($(fusion.north) + (-5.2, 0)$);
+\draw[flowarrow] (kin.south) -- node[midway, right=2pt, flowlabel] {$\mathbf{z}_{\text{kin}} \,(32\text{d})$} (fusion.north);
+\draw[flowarrow] (pointnet.south) -- node[midway, right=2pt, flowlabel] {$\mathbf{z}_{\text{belief}} \,(128\text{d})$} ($(fusion.north) + (5.2, 0)$);
 
-% STAGE IV: Latent DAG-MCTS & Teleological Intention Sharing
-\node[dagbox] (dag) at (-2.3, -3.2) {
-    \textbf{\normalsize Latent Belief-Graph DAG-MCTS \& PETC Information Gating}\\[2pt]
-    \scriptsize $\bullet$ \textbf{PointNet Hashing}: Merges branches if net impulse key $(I_x, I_y)$, position, and $1 - \mathbf{z}_1 \cdot \mathbf{z}_2 \le 0.015$\\[1pt]
-    \scriptsize $\bullet$ \textbf{Bellman DAG Decomposition}: Edge Q-value $Q(u, a) = \hat{R}(u, a) + \gamma \big(0.70 Q_{\text{direct}} + 0.30 V_{\text{pooled}}(w)\big)$\\[1pt]
-    \scriptsize $\bullet$ \textbf{PETC Event Gating}: replans iff $|\Delta \mathcal{S}| > 16$ px, LOS edge, path occlusion, or bearing drift\\[1pt]
-    \scriptsize $\bullet$ \textbf{Adversarial Rollout}: 12-Ray flee anticipation + Orthogonal Pincer Flanking Bonus $R_{\text{pincer}}$
+\node[pheadbox] (phead) at (-3.8, -2.3) {
+    \textbf{\small Policy Prior Head $\mathbf{P}_\theta(s, a)$}\\[2pt]
+    \scriptsize $\text{Linear}(128 \to 5) \to \text{Softmax}$\\[1pt]
+    \scriptsize 5 Action Priors (Stay, N, S, E, W)\\[1pt]
+    \scriptsize $\implies \mathbf{P}_\theta(s, a) \in \Delta(\mathcal{A})$ (DAG-MCTS Priors)
 };
 
-\node[intentbox] (intent) at (5.2, -3.2) {
-    \textbf{\small Intention Sharing Bus}\\[2pt]
+\node[vheadbox] (vhead) at (3.8, -2.3) {
+    \textbf{\small Value Evaluation Head $V_\phi(s)$}\\[2pt]
+    \scriptsize $\text{Linear}(128 \to 64) \to \text{ReLU} \to \text{Linear}(64 \to 1) \to \tanh$\\[1pt]
+    \scriptsize Scalar Expected Return $V_\phi(s) \in [-1, 1]$\\[1pt]
+    \scriptsize Direct Truncated Leaf State Evaluation ($D=6$)
+};
+
+% Parallel vertical drops from fusion trunk into dual heads
+\draw[flowarrow] ($(fusion.south) + (-3.8, 0)$) -- node[midway, left=2pt, flowlabel] {$\mathbf{z}_{\text{fuse}} \,(128\text{d})$} (phead.north);
+\draw[flowarrow] ($(fusion.south) + (3.8, 0)$) -- node[midway, right=2pt, flowlabel] {$\mathbf{z}_{\text{fuse}} \,(128\text{d})$} (vhead.north);
+
+% =========================================================================
+% STAGE IV: DEPTH-TRUNCATED PUCT MCTS & LOW-LEVEL CONTROL (y = -7.1)
+% =========================================================================
+\node[mctsbox] (mcts) at (-2.0, -7.1) {
+    \textbf{\normalsize Latent Belief-Graph DAG-MCTS \& PETC Information Gating}\\[3pt]
+    \scriptsize $\bullet$ \textbf{PUCT Selection}: $a^* = \arg\max_a \big[ Q_{\text{DAG}}(s, a) + c_{\text{puct}} \mathbf{P}_\theta(s, a) \frac{\sqrt{\sum N}}{1 + N(s, a)} \big]$\\[1pt]
+    \scriptsize $\bullet$ \textbf{PointNet Hashing}: Merges branches if $(I_x, I_y), \Delta\mathbf{p} \le 16\text{ px}, 1 - \mathbf{z}_1 \cdot \mathbf{z}_2 \le 0.015$ ($18.6\times$ speedup)\\[1pt]
+    \scriptsize $\bullet$ \textbf{Bellman DAG Backup}: $Q_{\text{DAG}} = (1-\lambda) Q_{\text{direct}} + \lambda (R + \gamma V_{\text{pooled}}), \; \lambda=0.30$\\[1pt]
+    \scriptsize $\bullet$ \textbf{PETC Gating}: Replans on $|\Delta\mathcal{S}| > 16\text{ px}$, LOS edge, or bearing drift ($-$67.7\% MCTS calls)\\[1pt]
+    \scriptsize $\bullet$ \textbf{Adversarial Lookahead}: 12-Ray flee anticipation + Pincer Flanking Reward $R_{\text{pincer}}$
+};
+
+\node[ctrlbox] (ctrl) at (5.9, -7.1) {
+    \textbf{\normalsize Intention Bus \& Control}\\[2pt]
     \scriptsize $\mathcal{I}_i = (\mathbf{w}_i^*, \hat{\mathbf{u}}_i, t_{\text{commit}}, \mathbf{b}_i)$\\[2pt]
     \scriptsize $\bullet$ \textbf{Anti-Clustering}:\\[1pt]
-    \scriptsize Repulsive Barrier $R_{\text{clash}}$\\[2pt]
-    \scriptsize $\bullet$ \textbf{Pincer Encirclement}:\\[1pt]
-    \scriptsize $+3.5 \sin^2(\Delta\phi/2)$\\[2pt]
-    \scriptsize $\bullet$ \textbf{A* Soft Bypass}
+    \scriptsize Repulsive barrier $R_{\text{clash}}$\\[1pt]
+    \scriptsize $\bullet$ \textbf{Pincer Flanking}:\\[1pt]
+    \scriptsize $+3.5 \sin^2(\Delta\phi/2)$\\[1pt]
+    \scriptsize $\bullet$ \textbf{MuJoCo Unicycle}:\\[1pt]
+    \scriptsize $\tau_{\text{yaw}}, F_{\text{fwd}} \implies \text{Motors}$
 };
 
-\draw[flowarrow] (fuse.south) -- ++(0,-0.4) -| (-2.3, -1.3);
-\draw[flowarrow] (dag.east) -- (intent.west);
-\draw[flowarrow] (intent.east) -- ++(0.7, 0) -- ++(0, 11.2) -| (env.north);
+% Heads to MCTS: Priors drops straight down
+\draw[flowarrow] (phead.south) -- node[midway, left=2pt, flowlabel] {Priors $\mathbf{P}_\theta(s, a)$} (mcts.north -| phead.south);
 
-% Background bounding containers
+% Value head drops down and steps to mcts right-top port
+\draw[flowarrow] (vhead.south) -- ++(0, -0.9) -| node[above=2pt, pos=0.35, flowlabel] {Leaf Eval $V_\phi(s_{\text{leaf}})$} ($(mcts.north) + (3.2, 0)$);
+
+% MCTS to Controller (Unobstructed horizontal arrow with 1.0cm clearance)
+\draw[flowarrow] (mcts.east) -- node[above=2pt, flowlabel] {Directive $\mathbf{w}_i^*$} (ctrl.west);
+
+% Closed-Loop Actuator Feedback (Completely clear outer perimeter loop)
+\draw[flowarrow] (ctrl.south) -- ++(0, -0.9) -| node[above=2pt, pos=0.35, flowlabel] {Non-Holonomic Motor Torques $(\tau_{\text{yaw}}, F_{\text{fwd}})$ \& Intention Broadcast $\mathcal{I}_i$ to Sim} (-8.6, -9.8) |- (env.west);
+
+% =========================================================================
+% BACKGROUND BOUNDING CARDS & NON-INTERSECTING PILL BADGES
+% Single-line centered badges with wide clearances on all sides!
+% =========================================================================
 \begin{scope}[on background layer]
-    \draw[stagebg, draw=blue!50!black!40, fill=blue!2] (-8.5, 7.3) rectangle (8.5, 10.3);
-    \node[stagepill, fill=blue!12, draw=blue!60!black, text=blue!90!black] at (-3.5, 10.05) {\textbf{STAGE I: DYNAMICS, CONTINUOUS RAYCASTING \& BIMODAL BELIEF FILTER}};
+    % Stage 1 Card
+    \draw[stagebg, draw=blue!50!black!40, fill=blue!2] (-8.3, 7.3) rectangle (8.3, 10.7);
+    \node[stagepill, fill=blue!12, draw=blue!60!black, text=blue!85!black] at (0.0, 10.4) {\textbf{STAGE I: MUJOCO CONTINUOUS RIGID-BODY PHYSICS \& BIMODAL SMC BELIEF FILTER}};
 
-    \draw[stagebg, draw=teal!50!black!40, fill=teal!2] (-8.5, 3.0) rectangle (8.5, 5.8);
-    \node[stagepill, fill=teal!12, draw=teal!60!black, text=teal!85!black] at (-3.5, 5.55) {\textbf{STAGE II: TRI-STREAM SPATIO-TEMPORAL \& POINTNET BELIEF ENCODING}};
+    % Stage 2 Card
+    \draw[stagebg, draw=green!50!black!40, fill=green!2] (-8.3, 2.9) rectangle (8.3, 6.3);
+    \node[stagepill, fill=green!12, draw=green!60!black, text=green!75!black] at (2.6, 5.85) {\textbf{STAGE II: TRI-STREAM SPATIO-TEMPORAL \& POINTNET BELIEF ENCODERS}};
 
-    \draw[stagebg, draw=purple!50!black!40, fill=purple!2] (-8.5, 0.1) rectangle (8.5, 2.3);
-    \node[stagepill, fill=purple!12, draw=purple!60!black, text=purple!85!black] at (-3.5, 2.05) {\textbf{STAGE III: MULTIMODAL FUSION TRUNK \& DUAL POLICY-VALUE HEADS}};
+    % Stage 3 Card
+    \draw[stagebg, draw=purple!50!black!40, fill=purple!2] (-8.3, -3.5) rectangle (8.3, 1.9);
+    \node[stagepill, fill=purple!12, draw=purple!60!black, text=purple!85!black] at (2.6, 1.65) {\textbf{STAGE III: MULTIMODAL FUSION TRUNK \& DUAL EVALUATION HEADS}};
 
-    \draw[stagebg, draw=orange!50!black!40, fill=orange!2] (-8.5, -5.4) rectangle (8.5, -1.0);
-    \node[stagepill, fill=orange!12, draw=orange!60!black, text=orange!85!black] at (-3.5, -1.25) {\textbf{STAGE IV: LATENT BELIEF-GRAPH DAG-MCTS \& TELEOLOGICAL INTENTION BUS}};
+    % Stage 4 Card
+    \draw[stagebg, draw=orange!50!black!40, fill=orange!2] (-8.3, -9.1) rectangle (8.3, -4.5);
+    \node[stagepill, fill=orange!12, draw=orange!60!black, text=orange!80!black] at (-1.3, -4.75) {\textbf{STAGE IV: LATENT DAG-MCTS, PETC GATING \& TELEOLOGICAL INTENTION BUS}};
 \end{scope}
 
 \end{tikzpicture}%
@@ -445,39 +581,6 @@ A major challenge in DAG-MCTS is preventing prefix-reward contamination when mul
     where $\lambda = 0.30$.
 \end{itemize}
 This guarantees zero reward leakage across incoming trajectories.
-
-\begin{algorithm}[!t]
-\caption{Latent Belief-Graph POMCP (DAG-MCTS)}
-\label{alg:dag_mcts}
-\begin{algorithmic}[1]
-\REQUIRE Root belief $\mathcal{B}_t$, budget $N_{\text{sims}}$, depth horizon $D=6$
-\STATE Initialize transposition hash table $\mathcal{T}_{\text{DAG}} \leftarrow \emptyset$
-\FOR{$k = 1$ to $N_{\text{sims}}$}
-    \STATE Sample state $\mathbf{s}_0 \sim \mathcal{B}_t$, set $u \leftarrow \text{root}$, $d \leftarrow 0$, path $\mathcal{P} \leftarrow []$
-    \WHILE{$d < D$ \textbf{and} NOT Terminal($u$)}
-        \STATE $a \leftarrow \arg\max_{a'} \big[ Q_{\text{DAG}}(u, a') + c_{\text{puct}} \mathbf{P}_\theta(u, a') \frac{\sqrt{\sum_b N(u,b)}}{1 + N(u, a')} \big]$
-        \STATE Step continuous simulator: $\mathbf{s}' \sim \mathcal{T}(\mathbf{s}, a)$, $r \leftarrow \mathcal{R}(\mathbf{s}, a)$
-        \STATE Compute key: $K \leftarrow \big( \sum_{t=0}^d \mathbf{a}_t, \lfloor \mathbf{p} / \tau_{\text{pos}} \rceil, \mathbf{z}_{\text{belief}} \big)$
-        \IF{$\exists w \in \mathcal{T}_{\text{DAG}}$ with $K \approx K(w) \land 1 - \mathbf{z} \cdot \mathbf{z}_w \le 0.015$}
-            \STATE $v \leftarrow w$ \COMMENT{Merge commutative transposition into DAG}
-        \ELSE
-            \STATE Allocate DAG node $v$, store key $(K, v) \to \mathcal{T}_{\text{DAG}}$
-        \ENDIF
-        \STATE Record edge transition: $\mathcal{P}\text{.append}\big((u, a, r, v)\big)$
-        \STATE $u \leftarrow v$, $d \leftarrow d + 1$
-    \ENDWHILE
-    \STATE Evaluate leaf return: $v_{\text{leaf}} \leftarrow V_\phi(u)$
-    \FOR{each $(u, a, r, v) \in \text{reversed}(\mathcal{P})$}
-        \STATE $N(v) \leftarrow N(v) + 1$, $V(v) \leftarrow V(v) + \frac{v_{\text{leaf}} - V(v)}{N(v)}$
-        \STATE $N(u, a) \leftarrow N(u, a) + 1$
-        \STATE $Q_{\text{direct}}(u, a) \leftarrow Q_{\text{direct}}(u, a) + \frac{(r + \gamma v_{\text{leaf}}) - Q_{\text{direct}}(u, a)}{N(u, a)}$
-        \STATE $Q_{\text{DAG}}(u, a) \leftarrow (1 - \lambda) Q_{\text{direct}}(u, a) + \lambda \big(r + \gamma V(v)\big)$
-        \STATE $v_{\text{leaf}} \leftarrow r + \gamma v_{\text{leaf}}$
-    \ENDFOR
-\ENDFOR
-\RETURN $a^* = \arg\max_a N(\text{root}, a)$
-\end{algorithmic}
-\end{algorithm}
 
 \subsection{Periodic Event-Triggered Control (PETC) Information Gate}
 Periodic MCTS execution ($t \bmod 15 = 0$) wastes search in steady-state tracking while incurring up to 14 frames of reaction lag at blind corners. We introduce \textbf{PETC Information Gating}: evaluated at candidate instants, MCTS triggers indicator $\sigma_i(t) \in \{0, 1\}$:
