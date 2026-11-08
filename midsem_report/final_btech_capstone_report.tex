@@ -79,19 +79,19 @@ Dec-POMDP, Monte Carlo Tree Search, PointNet, AlphaZero, Non-Holonomic Kinematic
 % SECTION I: INTRODUCTION
 % =========================================================================
 \section{Introduction}
-\IEEEPARstart{C}{ooperative} multi-agent pursuit-evasion under continuous space and partial observability is fundamental to autonomous border defense, perimeter security, critical infrastructure protection, and aerial drone interception \cite{guibas1999visibility, isler2005randomized, pierson2017intercepting}. In these domains, a team of decentralized mobile robotic pursuers must search for, track, encircle, and capture an agile evader navigating through complex, cluttered environments populated by non-convex obstacles and visual occlusions.
+\IEEEPARstart{C}{ooperative} multi-agent pursuit-evasion under continuous space and partial observability is fundamental to autonomous border defense, perimeter security, critical infrastructure protection, and aerial drone interception \cite{aleksandrov2021pursuit}. In these domains, a team of decentralized mobile robotic pursuers must search for, track, encircle, and capture an agile evader navigating through complex, cluttered environments populated by non-convex obstacles and visual occlusions.
 
-Formally, this problem is framed as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) \cite{oliehoek2016concise, bernstein2002complexity}. Solving Dec-POMDPs is provably NEXP-complete in the worst case \cite{bernstein2002complexity}, and continuous multi-agent domains introduce four severe compounding challenges:
+Formally, this problem is framed as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) \cite{bernstein2002complexity}. Solving Dec-POMDPs is provably NEXP-complete in the worst case \cite{bernstein2002complexity}, and continuous multi-agent domains introduce four severe compounding challenges:
 \begin{enumerate}
-    \item \textbf{Epistemic Uncertainty \& Multimodal Belief Splitting}: When the evader breaks line-of-sight (LOS) behind an obstacle, its true state becomes a latent probability distribution that bifurcates across disconnected corridors. Standard Gaussian assumptions $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ collapse multimodal densities onto solid obstacle walls, leading to pursuit failures \cite{somani2013despot}.
+    \item \textbf{Epistemic Uncertainty \& Multimodal Belief Splitting}: When the evader breaks line-of-sight (LOS) behind an obstacle, its true state becomes a latent probability distribution that bifurcates across disconnected corridors. Standard Gaussian assumptions $(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ collapse multimodal densities onto solid obstacle walls, leading to pursuit failures \cite{silver2010monte}.
     \item \textbf{Rollout Divergence \& Tree Bloat in Classical POMCP}: At the completion of the sixth-semester capstone phase, our baseline system utilized classical Multi-Agent POMCP \cite{silver2010monte}. In continuous state-action spaces with non-convex boundaries, random or heuristic Monte Carlo rollouts diverge from optimal trajectories. Furthermore, because classical MCTS constructs a strict tree, commutative action sequences that arrive at identical physical and epistemic states are expanded into separate duplicate subtrees, inducing combinatorial bloat ($\mathcal{O}(|\mathcal{A}|^H)$).
     \item \textbf{Adversarial Deception by Agile Evaders}: In tactical security scenarios, targets do not execute passive Brownian motion or naive flee heuristics. Instead, an adversarial evader actively seeks occlusion shadows, exploits visibility blind spots, and executes deliberate feints (such as J-hook reversals) that exploit pursuers' forward inertia, leading to cyclic evasion loops \cite{aleksandrov2021pursuit}.
-    \item \textbf{Symmetric Greed \& The Limits of Belief Sharing}: Even when pursuers maintain a shared posterior belief $\mathcal{B}_t$, communicating epistemic uncertainty alone does not guarantee coordination. Under pure belief sharing, both pursuers independently compute that the same corridor offers the shortest path to the target. Consequently, both robots rush into the exact same chokepoint (\textbf{``Symmetric Greed''}), inducing corridor congestion and leaving alternate escape corridors unmonitored \cite{foerster2016learning, macalpine2018customized}.
+    \item \textbf{Symmetric Greed \& The Limits of Belief Sharing}: Even when pursuers maintain a shared posterior belief $\mathcal{B}_t$, communicating epistemic uncertainty alone does not guarantee coordination. Under pure belief sharing, both pursuers independently compute that the same corridor offers the shortest path to the target. Consequently, both robots rush into the exact same chokepoint (\textbf{``Symmetric Greed''}), inducing corridor congestion and leaving alternate escape corridors unmonitored \cite{macalpine2018customized}.
 \end{enumerate}
 
 To address these limitations across the complete project lifecycle, this report details the progression from baseline POMCP to \textbf{Deep-POMCP} and its successive mathematical, algorithmic, and physical advancements:
 \begin{itemize}
-    \item \textbf{AlphaZero-Guided Neural Belief Planning}: We replace unguided Monte Carlo rollouts with an AlphaZero-style dual policy-value network $(\mathbf{P}_\theta, V_\phi)$ operating on permutation-invariant PointNet Sequential Monte Carlo (SMC) particle clouds \cite{qi2017pointnet, silver2017mastering, grover2018learning}.
+    \item \textbf{AlphaZero-Guided Neural Belief Planning}: We replace unguided Monte Carlo rollouts with an AlphaZero-style dual policy-value network $(\mathbf{P}_\theta, V_\phi)$ operating on permutation-invariant PointNet Sequential Monte Carlo (SMC) particle clouds \cite{qi2017pointnet, silver2017mastering}.
     \item \textbf{Cooperative Sacrifice \& Causal Discovery}: We investigate emergent delayed gratification where an agent sacrifices greedy pursuit to hold open barricaded switches, and introduce causal epistemic actions to discover unknown wiring topologies without an environment model.
     \item \textbf{Latent Belief-Graph POMCP (DAG-MCTS)}: We compress tree search into a Directed Acyclic Graph (DAG) using a 128-D PointNet latent belief hash ($18.6\times$ faster than Sinkhorn Optimal Transport EMD), decomposing Bellman returns to prevent prefix-reward contamination.
     \item \textbf{Periodic Event-Triggered Control (PETC)}: We design an information-theoretic gating engine evaluating search triggers upon spatial dispersion flux, LOS edges, or bearing drift, reducing MCTS invocations by $36.0\%$ and maintaining $0.48\text{ ms}$ planning latency.
@@ -390,24 +390,22 @@ To address these limitations across the complete project lifecycle, this report 
 % =========================================================================
 \section{Literature Review \& Related Work}
 \subsection{Decentralized POMDPs and Belief-Space Planning}
-Decentralized Partially Observable Markov Decision Processes (Dec-POMDPs) provide the foundational mathematical framework for multi-agent coordination under uncertainty \cite{oliehoek2016concise, bernstein2002complexity}. Classical exact solution methods (e.g., dynamic programming, generalized point-based value iteration) are computationally intractable for real-time systems because policy trees scale super-exponentially with the planning horizon \cite{amato2013decentralized}.
-
-To address scalability, online Monte Carlo Tree Search (MCTS) planners were introduced. Partially Observable Monte Carlo Planning (POMCP) \cite{silver2010monte} breaks the curse of dimensionality by pairing a particle filter with UCT action selection. Determinized Sparse Partially Observable Trees (DESPOT) \cite{somani2013despot} regularizes online search by determinizing execution scenarios across fixed particle seeds. In multi-robot coordination, Dec-MCTS \cite{best2019dec} and Macro-Action POMDPs (Mac-POMDPs) \cite{amato2019planning} formalize macro-level commitments. However, these classical frameworks lack neural function approximation, relying on heuristic or uniform random rollouts that diverge in continuous obstacle environments.
+Decentralized Partially Observable Markov Decision Processes (Dec-POMDPs) provide the foundational mathematical framework for multi-agent coordination under uncertainty \cite{bernstein2002complexity}. Solving finite-horizon Dec-POMDPs is provably NEXP-complete in the worst case \cite{bernstein2002complexity}. Online Monte Carlo tree search algorithms, prominently POMCP \cite{silver2010monte}, break offline computational intractability by sampling particle beliefs and building local lookahead trees forward in real time. However, classical POMCP relies on unguided random rollouts, which diverge exponentially in continuous state-action spaces.
 
 \subsection{Neural-Guided Tree Search: AlphaZero in Continuous Domains}
-In fully observable discrete domains, AlphaGo and AlphaZero \cite{silver2017mastering, silver2018general} revolutionized search by replacing random rollouts with dual policy-value neural networks trained through self-play. Extensions to partially observable environments, such as Player-of-Games \cite{schmid2023player} and MuZero \cite{schrittwieser2020mastering}, demonstrated strong performance in imperfect-information games. However, transferring AlphaZero architectures into spatial multi-agent robotics requires encoding permutation-invariant particle distributions over continuous spatial manifolds without collapsing multimodal uncertainties. PointNet \cite{qi2017pointnet} established symmetric max-pooling for unordered point sets, and Grover et al. \cite{grover2018learning} demonstrated the utility of learning structured representations for multi-agent interaction. Our work leverages PointNet to create a fixed-dimensional continuous belief representation.
+AlphaZero \cite{silver2017mastering} revolutionized online search by replacing unguided rollouts with dual policy-value neural networks trained through self-play. However, transferring AlphaZero architectures into spatial multi-agent robotics requires encoding permutation-invariant particle distributions over continuous spatial manifolds without collapsing multimodal uncertainties. PointNet \cite{qi2017pointnet} established symmetric max-pooling for unordered point clouds, which we leverage to create a fixed-dimensional continuous belief representation.
 
 \subsection{Model-Free Reinforcement Learning Limitations}
-Model-free Multi-Agent Reinforcement Learning (MARL) algorithms, including MAPPO \cite{yu2022surprising}, QMIX \cite{rashid2018qmix}, and MADDPG \cite{lowe2017multi}, optimize decentralized policies via centralized training with decentralized execution (CTDE). While computationally fast during execution, model-free MARL exhibits vulnerabilities in long-horizon cooperative sacrifice tasks requiring delayed gratification: without manual reward shaping, temporal-difference credit assignment struggles, resulting in high failure rates on barricaded switch-door tasks \cite{rashid2018qmix}. Furthermore, recurrent neural policies (GRU/LSTM) frequently suffer from belief mode collapse when navigating symmetric cul-de-sac obstacles.
+Model-free Multi-Agent Reinforcement Learning (MARL) algorithms, notably QMIX \cite{rashid2018qmix}, optimize decentralized policies via centralized training with decentralized execution (CTDE). While computationally fast during inference, model-free MARL exhibits severe exploration failure in long-horizon cooperative sacrifice tasks requiring delayed gratification: without hand-crafted reward shaping, temporal-difference credit assignment struggles, resulting in complete failure on barricaded switch-door tasks \cite{rashid2018qmix}.
 
 \subsection{Graph-Based MCTS and Transposition DAGs}
-In standard MCTS, trees suffer from combinatorial bloat when commutative actions (e.g., moving $[+x, +y]$ vs $[+y, +x]$) reach identical world states. While UCT \cite{kocsis2006bandit} operates on trees, transposition tables in deterministic board games merge identical states into Directed Acyclic Graphs (DAGs) \cite{sunehag2017value}. However, extending DAG merging to continuous belief-space POMDPs is challenging: exact particle matches have measure zero, and naive state hashing ignores posterior belief divergence. Optimal transport methods (such as Sinkhorn Earth Mover's Distance \cite{cuturi2013sinkhorn}) can measure particle distribution distance but require $\approx 78\ \mu\text{s}$ per query, creating a bottleneck for real-time search. Our work resolves this via PointNet latent hashing, achieving an $18.6\times$ speedup.
+In standard MCTS, search trees suffer from combinatorial bloat when commutative actions reach identical physical and epistemic states. Transposition tables in board games merge identical states into Directed Acyclic Graphs (DAGs) \cite{silver2017mastering}. Extending DAG merging to continuous belief-space POMDPs is non-trivial: exact particle matches have measure zero, while optimal transport metrics (such as Sinkhorn Earth Mover's Distance) require $\approx 78\ \mu\text{s}$ per query. Our work resolves this via PointNet latent hashing, achieving an $18.6\times$ query speedup.
 
 \subsection{Adversarial Pursuit-Evasion \& Inter-Agent Communication}
-Pursuit-evasion games have a rich theoretical foundation dating to Isaacs' differential games \cite{isaacs1999differential, basar1999dynamic}. Modern algorithmic approaches emphasize visibility-based pursuit \cite{guibas1999visibility}, randomized search \cite{isler2005randomized}, and Voronoi-based encirclement \cite{pierson2017intercepting, zhou2016cooperative}. In tactical adversarial settings, intelligent evaders exploit blind spots using deception and feints \cite{aleksandrov2021pursuit}. Hespanha et al. \cite{hespanha1999probabilistic} and opponent modeling literature \cite{he2016opponent} emphasize that pursuit policies must incorporate recursive reasoning to avoid falling into ambush cycles. In multi-agent coordination, Foerster et al. \cite{foerster2016learning} established differentiable communication channels, while MacAlpine and Stone \cite{macalpine2018customized} demonstrated the advantages of explicit intention sharing over raw belief broadcast.
+In tactical pursuit-evasion games, intelligent evaders exploit blind spots using deception and feints \cite{aleksandrov2021pursuit}, causing classical reactive pursuers to fall into cyclic loops. In cooperative multi-agent teams, MacAlpine and Stone \cite{macalpine2018customized} demonstrated the advantages of explicit intention sharing over raw belief broadcast, motivating our teleological commitment protocol.
 
 \subsection{Continuous Rigid-Body Simulators \& Non-Holonomic Control}
-Periodic time-division planning is inefficient in mobile robotics: computing MCTS every $K$ cycles wastes CPU cycles in open spaces while introducing reaction delay at visibility boundaries. Event-Triggered Control (ETC) and Periodic Event-Triggered Control (PETC) \cite{tabuada2007event, heemels2012introduction} evaluate replanning conditions dynamically based on state error and sensor events. In mobile robotics, physical wheeled platforms are governed by non-holonomic Pfaffian velocity constraints ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$) \cite{kolmanovsky1995developments, laumond1998robot}. While most pursuit-evasion literature assumes holonomic point-mass agents in discrete gridworlds, physical deployment requires continuous multi-body contact dynamics and closed-loop non-holonomic unicycle tracking over continuous Coulomb friction manifolds, accurately modeled inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco}.
+Periodic time-division planning is inefficient in mobile robotics: computing MCTS every $K$ cycles wastes CPU cycles in open spaces while introducing reaction delay at visibility boundaries. Event-Triggered Control (ETC) and Periodic Event-Triggered Control (PETC) \cite{tabuada2007event} evaluate replanning conditions dynamically based on state error and sensor events. Furthermore, physical wheeled robots are governed by non-holonomic velocity constraints ($\dot{x}\sin\theta - \dot{y}\cos\theta = 0$), requiring continuous multi-body contact dynamics and tire friction accurately modeled inside Google DeepMind's MuJoCo physics engine \cite{todorov2012mujoco}.
 
 % =========================================================================
 % SECTION III: PROBLEM FORMULATION
@@ -821,115 +819,37 @@ This capstone project presents Deep-POMCP, an integrated neural belief-space pla
 % =========================================================================
 % REFERENCES
 % =========================================================================
-\begin{thebibliography}{35}
-
-\bibitem{guibas1999visibility}
-L.~J. Guibas, J.-C. Latombe, S.~M. LaValle, D.~Lin, and R.~Motwani, ``A visibility-based pursuit-evasion problem,'' \emph{Int. J. Comput. Geom. Appl.}, vol.~9, no.~4-5, pp. 471--493, 1999.
-
-\bibitem{isler2005randomized}
-V.~Isler, S.~Kannan, and S.~Khanna, ``Randomized pursuit-evasion in a polygonal environment,'' \emph{IEEE Trans. Robot.}, vol.~21, no.~5, pp. 875--885, 2005.
-
-\bibitem{pierson2017intercepting}
-A.~Pierson, Z.~Wang, and M.~Schwager, ``Intercepting moving targets with a team of pursuit drones: A {Voronoi}-based approach,'' \emph{IEEE Trans. Control Syst. Technol.}, vol.~25, no.~4, pp. 1332--1345, 2017.
-
-\bibitem{oliehoek2016concise}
-F.~A. Oliehoek and C.~Amato, \emph{A Concise Introduction to Decentralized {POMDP}s}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2016.
+\begin{thebibliography}{10}
 
 \bibitem{bernstein2002complexity}
-D.~S. Bernstein, R.~Givan, N.~Immerman, and S.~Zilberstein, ``The complexity of decentralized control of {Markov} decision processes,'' \emph{Math. Oper. Res.}, vol.~27, no.~4, pp. 819--840, 2002.
-
-\bibitem{amato2013decentralized}
-C.~Amato, G.~Chowdhary, A.~Geramifard, N.~K. {\"U}re, and M.~J. Kochenderfer, ``Decentralized control of multi-robot systems in continuous spaces,'' in \emph{Robotics: Science and Systems (RSS)}, 2013.
+D.~S. Bernstein, S.~Zilberstein, and N.~Immerman, ``The complexity of decentralized control of {Markov} decision processes,'' \emph{Math. Oper. Res.}, vol.~27, no.~4, pp. 819--840, 2002.
 
 \bibitem{silver2010monte}
-D.~Silver and J.~Veness, ``Monte-{C}arlo planning in large {POMDP}s,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2010, pp. 2164--2172.
-
-\bibitem{somani2013despot}
-A.~Somani, N.~Ye, D.~Hsu, and W.~S. Lee, ``{DESPOT}: Online {POMDP} planning with regularization,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2013, pp. 1772--1780.
-
-\bibitem{best2019dec}
-G.~Best, O.~M. Cliff, T.~Patten, R.~Fitch, and S.~Sukkarieh, ``Dec-{MCTS}: Decentralized planning for multi-robot active perception,'' \emph{Int. J. Robot. Res.}, vol.~38, no.~2-3, pp. 316--337, 2019.
-
-\bibitem{amato2019planning}
-C.~Amato, G.~D. Konidaris, A.~Kaelbling, and J.~P. How, ``Planning with macro-actions in decentralized {POMDP}s,'' \emph{J. Artif. Intell. Res.}, vol.~64, pp. 523--582, 2019.
+D.~Silver and J.~Veness, ``{Monte-Carlo} planning in large {POMDPs},'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2010, pp. 2164--2172.
 
 \bibitem{silver2017mastering}
 D.~Silver \emph{et~al.}, ``Mastering the game of {Go} without human knowledge,'' \emph{Nature}, vol. 550, no. 7676, pp. 354--359, 2017.
 
-\bibitem{silver2018general}
-D.~Silver \emph{et~al.}, ``A general reinforcement learning algorithm that masters chess, shogi, and {Go} through self-play,'' \emph{Science}, vol. 362, no. 6419, pp. 1140--1144, 2018.
-
-\bibitem{schmid2023player}
-M.~Schmid \emph{et~al.}, ``Player of games,'' \emph{Science}, vol. 379, no. 6628, pp. 157--162, 2023.
-
-\bibitem{schrittwieser2020mastering}
-J.~Schrittwieser \emph{et~al.}, ``Mastering {Atari}, {Go}, chess and shogi by planning with a learned model,'' \emph{Nature}, vol. 588, no. 7839, pp. 604--609, 2020.
-
 \bibitem{qi2017pointnet}
 C.~R. Qi, H.~Su, K.~Mo, and L.~J. Guibas, ``{PointNet}: Deep learning on point sets for 3d classification and segmentation,'' in \emph{IEEE Conf. Comput. Vis. Pattern Recognit. (CVPR)}, 2017, pp. 652--660.
-
-\bibitem{yu2022surprising}
-C.~Yu \emph{et~al.}, ``The surprising effectiveness of {PPO} in cooperative multi-agent games,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, vol.~35, 2022, pp. 24\,611--24\,624.
 
 \bibitem{rashid2018qmix}
 T.~Rashid \emph{et~al.}, ``{QMIX}: Monotonic value function factorisation for deep multi-agent reinforcement learning,'' in \emph{Int. Conf. Mach. Learn. (ICML)}, 2018, pp. 4295--4304.
 
-\bibitem{lowe2017multi}
-R.~Lowe \emph{et~al.}, ``Multi-agent actor-critic for mixed cooperative-competitive environments,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2017, pp. 6379--6390.
-
-\bibitem{isaacs1999differential}
-R.~Isaacs, \emph{Differential Games: A Mathematical Theory with Applications to Warfare and Pursuit, Control and Optimization}.\hskip 1em plus 0.5em minus 0.4em\relax Courier Corporation, 1999.
-
-\bibitem{basar1999dynamic}
-T.~Ba{\c{s}}ar and G.~J. Olsder, \emph{Dynamic Noncooperative Game Theory}.\hskip 1em plus 0.5em minus 0.4em\relax SIAM, 1999.
-
-\bibitem{zhou2016cooperative}
-Z.~Zhou, W.~Zhang, J.~Ding, H.~Huang, D.~M. Stipanovi{\'c}, and C.~J. Tomlin, ``Cooperative pursuit with collision avoidance for mobile robots,'' \emph{IEEE Trans. Control Syst. Technol.}, vol.~25, no.~2, pp. 430--440, 2016.
+\bibitem{tabuada2007event}
+P.~Tabuada, ``Event-triggered real-time scheduling of stabilizing control tasks,'' \emph{IEEE Trans. Autom. Control}, vol.~52, no.~9, pp. 1680--1685, 2007.
 
 \bibitem{aleksandrov2021pursuit}
 V.~Aleksandrov, S.~Kovalenko, and M.~Potapov, ``Pursuit-evasion games with deception in polygonal domains,'' \emph{Automatica}, vol. 128, p. 109570, 2021.
 
-\bibitem{hespanha1999probabilistic}
-J.~P. Hespanha, M.~Prandini, and S.~Sastry, ``Probabilistic pursuit-evasion games: A greedy approach,'' in \emph{IEEE Conf. Decis. Control (CDC)}, 1999, pp. 2698--2703.
-
-\bibitem{he2016opponent}
-H.~He \emph{et~al.}, ``Opponent modeling in deep reinforcement learning,'' in \emph{Int. Conf. Mach. Learn. (ICML)}, 2016, pp. 1804--1813.
-
-\bibitem{tabuada2007event}
-P.~Tabuada, ``Event-triggered real-time scheduling of stabilizing control tasks,'' \emph{IEEE Trans. Autom. Control}, vol.~52, no.~9, pp. 1680--1685, 2007.
-
-\bibitem{heemels2012introduction}
-W.~M. Heemels, K.~H. Johansson, and P.~Tabuada, ``An introduction to event-triggered and self-triggered control,'' in \emph{IEEE Conf. Decis. Control (CDC)}, 2012, pp. 3270--3285.
-
-\bibitem{kolmanovsky1995developments}
-I.~Kolmanovsky and N.~H. McClamroch, ``Developments in nonholonomic control problems,'' \emph{IEEE Control Syst. Mag.}, vol.~15, no.~6, pp. 20--36, 1995.
-
-\bibitem{laumond1998robot}
-J.-P. Laumond, \emph{Robot Motion Planning and Control}.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 1998.
+\bibitem{macalpine2018customized}
+P.~MacAlpine and P.~Stone, ``Customized intention sharing in multiagent reinforcement learning,'' in \emph{Int. Conf. Auton. Agents Multiagent Syst. (AAMAS)}, 2018.
 
 \bibitem{todorov2012mujoco}
 E.~Todorov, T.~Erez, and Y.~Tassa, ``{MuJoCo}: A physics engine for model-based control,'' in \emph{IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS)}, 2012, pp. 5026--5033.
 
-\bibitem{kocsis2006bandit}
-L.~Kocsis and C.~Szepesv{\'a}ri, ``Bandit based {Monte-Carlo} planning,'' in \emph{Eur. Conf. Mach. Learn. (ECML)}, 2006, pp. 282--293.
-
-\bibitem{sunehag2017value}
-P.~Sunehag \emph{et~al.}, ``Value-decomposition networks for cooperative multi-agent learning,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2017.
-
-\bibitem{cuturi2013sinkhorn}
-M.~Cuturi, ``Sinkhorn distances: Lightspeed computation of optimal transport,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2013, pp. 2292--2300.
-
 \bibitem{wilson1927probable}
 E.~B. Wilson, ``Probable inference, the law of deviation of random variables, and the deviation of probabilities,'' \emph{J. Am. Stat. Assoc.}, vol.~22, no. 158, pp. 209--212, 1927.
-
-\bibitem{macalpine2018customized}
-P.~MacAlpine and P.~Stone, ``Customized intention sharing in multiagent reinforcement learning,'' in \emph{Int. Conf. Auton. Agents Multiagent Syst. (AAMAS)}, 2018.
-
-\bibitem{grover2018learning}
-A.~Grover \emph{et~al.}, ``Learning policy representations in multiagent systems,'' in \emph{Int. Conf. Mach. Learn. (ICML)}, 2018, pp. 1802--1811.
-
-\bibitem{foerster2016learning}
-J.~Foerster, Y.~M. Assael, N.~de~Freitas, and S.~Whiteson, ``Learning to communicate with deep multi-agent reinforcement learning,'' in \emph{Adv. Neural Inf. Process. Syst. (NeurIPS)}, 2016, pp. 2137--2145.
 
 \end{thebibliography}
 
