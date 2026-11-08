@@ -655,24 +655,25 @@ Against adversarial evaders executing J-hook feints behind occlusions, unimodal 
 \end{enumerate}
 
 \subsection{Teleological Intention Sharing}
-To resolve ``Symmetric Greed'', we establish the Inter-Pursuer Intention Bus \cite{macalpine2018customized}. At planning step $t$, Agent $i$ broadcasts its teleological commitment tuple:
+In symmetric or branching topologies (e.g., loops and bifurcations), decentralized pursuers sharing only belief states $\mathcal{B}_t$ suffer from \textbf{``Symmetric Greed''}: both agents independently compute identical greedy pursuit paths, crowding into the same corridor in single file while leaving alternative escape routes unguarded. 
+
+To break symmetry without centralized control, each agent broadcasts a low-bandwidth \textbf{teleological intention tuple} \cite{macalpine2018customized}:
 \begin{equation}
-    \mathcal{I}_i = \big( \mathbf{w}_i^*, \; \hat{\mathbf{u}}_i, \; t_{\text{commit}}, \; \mathbf{b}_i \big)
+    \mathcal{I}_i = \big( \mathbf{w}_i^*, \; \hat{\mathbf{u}}_i, \; t_{\text{commit}} \big)
 \end{equation}
-In Partner Agent $j$'s MCTS lookahead ($j \neq i$), simulated states $\mathbf{x}_j(\tau)$ incorporate two intention rewards:
-\begin{enumerate}
-    \item \textbf{Anti-Clustering Repulsive Barrier}:
-    \begin{equation}
-        R_{\text{clash}}(\mathbf{x}_j) = -4.0 \cdot \exp\left( -\frac{\|\mathbf{x}_j - \mathbf{w}_i^*\|^2}{2 \sigma_{\text{repel}}^2} \right) \cdot \mathbb{I}(d_{i \to e} > 75\text{ px})
-    \end{equation}
-    with $\sigma_{\text{repel}} = 35.0\text{ px}$. Repulsion is suppressed within $75\text{ px}$ of the evader to permit close physical capture.
-    \item \textbf{Pincer Encirclement Reward}:
-    \begin{align}
-        \cos(\Delta\phi) &= \frac{(\mathbf{x}_e - \mathbf{x}_j) \cdot (\mathbf{x}_e - \mathbf{w}_i^*)}{\|\mathbf{x}_e - \mathbf{x}_j\| \|\mathbf{x}_e - \mathbf{w}_i^*\|} \\
-        R_{\text{pincer}} &= +3.5 \cdot \sin^2\left(\frac{\Delta\phi}{2}\right) = +3.5 \cdot \left(\frac{1 - \cos(\Delta\phi)}{2}\right)
-    \end{align}
-    This reward increases monotonically with separation angle $\Delta\phi$, rewarding wide flanking ($+1.75$ at $90^\circ$) up to head-on pincer opposition ($+3.50$ at $180^\circ$).
-\end{enumerate}
+where $\mathbf{w}_i^*$ is agent $i$'s committed macro-waypoint, $\hat{\mathbf{u}}_i$ is its heading unit vector, and $t_{\text{commit}}$ is the commitment horizon. Partner agent $j$ ($j \neq i$) directly incorporates $\mathcal{I}_i$ into its local MCTS rollout reward function through two complementary terms:
+
+\textbf{1) Spatial Deconfliction}: Penalizes agent $j$ from traversing into the corridor committed by agent $i$, forcing it to explore alternative routes:
+\begin{equation}
+    R_{\text{repel}}(\mathbf{x}_j) = -4.0 \exp\left( -\frac{\|\mathbf{x}_j - \mathbf{w}_i^*\|^2}{2 \sigma_{\text{repel}}^2} \right) \cdot \mathbb{I}(d_{i \to e} > 75\text{ px})
+\end{equation}
+with $\sigma_{\text{repel}} = 35.0\text{ px}$. Repulsion is deactivated when agent $i$ is within $75\text{ px}$ of the evader to enable joint terminal capture.
+
+\textbf{2) Coordinated Pincer Encirclement}: Encourages agent $j$ to approach the target $\mathbf{x}_e$ from opposing angular bearings:
+\begin{equation}
+    R_{\text{pincer}} = +3.5 \sin^2\left(\frac{\Delta\phi}{2}\right) = \frac{3.5}{2} \big(1 - \cos\Delta\phi\big)
+\end{equation}
+where $\Delta\phi = \arccos\big( \frac{(\mathbf{x}_e - \mathbf{x}_j) \cdot (\mathbf{x}_e - \mathbf{w}_i^*)}{\|\mathbf{x}_e - \mathbf{x}_j\| \|\mathbf{x}_e - \mathbf{w}_i^*\|} \big)$ is the angular separation subtended at the target. This reward scales monotonically from $0$ (co-linear trailing) to $+1.75$ (orthogonal flanking at $90^\circ$) and $+3.50$ (head-on pincer containment at $180^\circ$), transforming independent chases into coordinated encirclement.
 
 % =========================================================================
 % FIGURE 5: COMPREHENSIVE THOROUGH BENCHMARK RESULTS
